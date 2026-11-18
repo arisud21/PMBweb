@@ -1,0 +1,20 @@
+{
+  "name": "pmb-landing-voucher",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Landing page PMB + klaim voucher via email + panel admin (versi localhost)",
+  "main": "server/index.js",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "dev": "node --watch --env-file-if-exists=.env server/index.js",
+    "reset-admin": "node --env-file-if-exists=.env server/reset-admin.js",
+    "test-email": "node --env-file-if-exists=.env server/test-email.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "nodemailer": "^6.9.16"
+  }
+}

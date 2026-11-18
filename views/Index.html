@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PMB - Klaim Voucher</title>
+<?!= include('Styles'); ?>
+<style>
+/* ---------- Navbar ---------- */
+.nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.nav-in{display:flex;align-items:center;justify-content:space-between;gap:16px;height:68px}
+.nav-links{display:none;gap:4px;padding:4px;border-radius:999px}
+.nav-links a{padding:8px 13px;border-radius:999px;font-weight:600;font-size:14px;white-space:nowrap;color:var(--ink-2);transition:background .15s,color .15s}
+.nav-in .brand{flex:0 1 auto;min-width:0}
+.nav-links a:hover,.nav-links a.active{background:var(--primary-soft);color:var(--ink)}
+.nav-right{display:flex;align-items:center;gap:8px}
+.nav .btn-primary{height:42px}
+@media (min-width:1200px){.nav-links{display:flex}}
+@media (max-width:520px){.nav .btn-primary .lbl{display:none}.nav .btn-primary{width:42px;padding:0}.brand-sub{max-width:150px}}
+.menu-btn{display:inline-grid}
+@media (min-width:1200px){.menu-btn{display:none}}
+.mnav{display:none;position:fixed;inset:68px 0 auto 0;z-index:49;max-height:calc(100vh - 68px);overflow:auto;padding:12px 16px 18px;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:var(--shadow-lg)}
+.mnav.open{display:block}
+.mnav a{display:block;padding:12px 14px;border-radius:12px;font-weight:700;color:var(--ink-2)}
+.mnav a:hover,.mnav a.active{background:var(--primary-soft);color:var(--ink)}
+@media (min-width:1200px){.mnav{display:none!important}}
+/* Dropdown sub menu */
+.dd{position:relative}
+.dd-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 13px;border:0;border-radius:999px;background:transparent;font-weight:600;font-size:14px;white-space:nowrap;color:var(--ink-2);cursor:pointer;transition:background .15s,color .15s}
+.dd-btn:hover,.dd-btn.active,.dd.open .dd-btn{background:var(--primary-soft);color:var(--ink)}
+.dd-btn svg{transition:transform .2s}
+.dd.open .dd-btn svg{transform:rotate(180deg)}
+.dd-menu{position:absolute;top:calc(100% + 8px);left:50%;transform:translate(-50%,6px);min-width:230px;padding:8px;border-radius:16px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lg);opacity:0;visibility:hidden;transition:opacity .15s,transform .15s,visibility .15s;z-index:60}
+.dd-menu::before{content:"";position:absolute;left:0;right:0;top:-10px;height:10px}
+.dd.open .dd-menu{opacity:1;visibility:visible;transform:translate(-50%,0)}
+@media (hover:hover){.dd:hover .dd-menu{opacity:1;visibility:visible;transform:translate(-50%,0)}.dd:hover .dd-btn svg{transform:rotate(180deg)}}
+.nav-links .dd-menu a{display:block;padding:10px 14px;border-radius:10px;white-space:nowrap}
+.dd-menu a.parent{font-weight:800;color:var(--ink)}
+.dd-menu hr{border:0;border-top:1px solid var(--line);margin:6px 4px}
+.mnav .msub-btn{display:flex;width:100%;align-items:center;justify-content:space-between;padding:12px 14px;border:0;border-radius:12px;background:transparent;font-weight:700;font-size:15px;color:var(--ink-2);cursor:pointer;text-align:left}
+.mnav .msub-btn.active,.mnav .msub-btn:hover{background:var(--primary-soft);color:var(--ink)}
+.mnav .msub-btn svg{transition:transform .2s}
+.mnav .msub-btn[aria-expanded="true"] svg{transform:rotate(180deg)}
+.mnav .msub{display:none;margin:2px 0 6px 14px;padding-left:10px;border-left:2px solid var(--line)}
+.mnav .msub.open{display:block}
+.mnav .msub a{font-weight:600;padding:10px 14px}
+.foot .fsub{display:block;padding-left:12px;font-size:13.5px}
+
+/* ---------- Routing antar laman ---------- */
+.pg{display:none}
+body[data-page="home"] .pg-home,body[data-page="klaim"] .pg-klaim,body[data-page="p"] .pg-custom,body[data-page="prodi"] .pg-prodi,body[data-page="404"] .pg-404{display:block}
+/* Profil program studi */
+.prodi .links{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:16px}
+.prodi .links .go{margin-top:0}
+.prodi .more{color:var(--ink)}
+.pp-badge{position:relative;display:inline-grid;place-items:center;min-width:64px;height:64px;padding:0 12px;border-radius:18px;color:#fff;font-weight:800;font-size:20px;background:var(--accent);box-shadow:0 18px 30px -16px var(--accent);margin-top:16px}
+.pp-facts{position:relative;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:22px}
+.pp-fact{padding:10px 16px;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow);text-align:left}
+.pp-fact small{display:block;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.pp-fact b{font-size:15px}
+.pp-grid{display:grid;gap:22px;grid-template-columns:1fr;align-items:start}
+@media (min-width:980px){.pp-grid{grid-template-columns:minmax(0,1fr) 340px}}
+.pp-main{display:grid;gap:18px}
+.pp-photo{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);aspect-ratio:16/7;background:var(--bg-soft)}
+.pp-photo img{width:100%;height:100%;object-fit:cover}
+.pp-sec{padding:24px}
+.pp-sec h2{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800}
+.pp-sec h2::before{content:"";width:6px;height:22px;border-radius:4px;background:var(--accent)}
+.pp-sec .txt{color:var(--ink-2);margin-top:12px;line-height:1.8}
+.pp-sec .txt p + p{margin-top:10px}
+.pp-list{list-style:none;padding:0;margin:14px 0 0;display:grid;gap:10px}
+.pp-list li{display:flex;gap:10px;align-items:flex-start;color:var(--ink-2)}
+.pp-list li::before{content:"";flex:none;width:18px;height:18px;margin-top:3px;border-radius:50%;background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/10px no-repeat}
+.pp-list.num{counter-reset:n}
+.pp-list.num li::before{counter-increment:n;content:counter(n);background:var(--accent);color:#fff;font-size:11px;font-weight:800;display:grid;place-items:center}
+.pp-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.pp-chips span{padding:8px 14px;border-radius:999px;background:var(--bg-soft);border:1px solid var(--line);font-size:13.5px;font-weight:600}
+.pp-empty{padding:24px;text-align:center;color:var(--muted)}
+.pp-side{display:grid;gap:16px}
+@media (min-width:980px){.pp-side{position:sticky;top:88px}}
+.pp-cta{position:relative;padding:24px;border-radius:var(--radius);background:#0f1a3a;color:#fff;overflow:hidden}
+.pp-cta::before{content:"";position:absolute;width:260px;height:260px;right:-100px;bottom:-120px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.6),transparent 65%)}
+.pp-cta h3{position:relative;font-size:19px;font-weight:800}
+.pp-cta p{position:relative;opacity:.8;font-size:14px;margin-top:8px}
+.pp-cta .btn{position:relative;width:100%;margin-top:12px}
+.pp-cta .btn-ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.3)}
+.pp-others{padding:20px}
+.pp-others h3{font-size:15px;font-weight:800;margin-bottom:10px}
+.pp-others a{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;font-weight:600;font-size:14px;color:var(--ink-2)}
+.pp-others a:hover{background:var(--primary-soft);color:var(--ink)}
+.pp-others a i{flex:none;font-style:normal;font-size:11px;font-weight:800;color:#fff;padding:3px 7px;border-radius:7px}
+.page-hero{position:relative;padding:56px 0 34px;text-align:center;overflow-x:clip}
+.page-hero::before{content:"";position:absolute;width:520px;height:520px;left:-200px;top:-200px;border-radius:50%;background:radial-gradient(circle,var(--glow),transparent 65%);pointer-events:none}
+.page-hero::after{content:"";position:absolute;width:460px;height:460px;right:-180px;top:-60px;border-radius:50%;background:radial-gradient(circle,rgba(181,87,107,.14),transparent 65%);pointer-events:none}
+.page-hero .crumb{position:relative;font-size:13px;color:var(--muted);font-weight:600}
+.page-hero .crumb a{color:var(--primary)}
+.page-hero h1{position:relative;font-size:clamp(2.1rem,5.6vw,4rem);font-weight:800;letter-spacing:-.04em;margin-top:10px}
+.page-hero p{position:relative;max-width:640px;margin:14px auto 0;color:var(--ink-2);font-size:16px}
+.page-body{padding:10px 0 72px}
+.page-text{max-width:820px;margin:0 auto 34px;color:var(--ink-2);font-size:15.5px;line-height:1.8}
+.page-text p + p,.page-text ul + p,.page-text p + ul{margin-top:12px}
+.page-text ul{margin:0;padding-left:20px}
+.media-stack{max-width:900px;margin:0 auto 34px;display:grid;gap:28px}
+.media-stack:empty{display:none}
+.media-stack.bottom{margin:34px auto 0}
+.media figure{margin:0}
+.media figcaption{margin-top:10px;text-align:center;font-size:14px;color:var(--muted)}
+.media-frame{position:relative;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);background:var(--bg-soft)}
+.media-photo img{width:100%;height:auto;max-height:640px;object-fit:contain;display:block;margin:0 auto}
+.media-yt{aspect-ratio:16/9}
+.media-yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.car-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;aspect-ratio:16/9}
+.car-track::-webkit-scrollbar{display:none}
+.car-track img{flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:center;display:block}
+.car-btn{position:absolute;top:50%;transform:translateY(-50%);width:42px;height:42px;border-radius:50%;border:0;display:grid;place-items:center;background:rgba(15,26,58,.55);color:#fff;font-size:22px;line-height:1;cursor:pointer;backdrop-filter:blur(4px)}
+.car-btn:hover{background:rgba(15,26,58,.8)}
+.car-btn.prev{left:12px}.car-btn.next{right:12px}
+.car-dots{position:absolute;left:0;right:0;bottom:12px;display:flex;justify-content:center;gap:7px}
+.car-dots button{width:9px;height:9px;padding:0;border-radius:50%;border:0;background:rgba(255,255,255,.55);cursor:pointer;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+.car-dots button.on{background:#fff;width:22px;border-radius:5px}
+@media (max-width:600px){.car-btn{width:34px;height:34px;font-size:18px}.car-btn.prev{left:6px}.car-btn.next{right:6px}}
+.jalur-grid{display:grid;gap:18px;grid-template-columns:1fr}
+@media (min-width:760px){.jalur-grid{grid-template-columns:repeat(2,1fr)}}
+.jalur{position:relative;display:flex;flex-direction:column;padding:26px 24px;overflow:hidden}
+.jalur::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--accent)}
+.jalur .lb{align-self:flex-start;display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:800;color:#fff;background:var(--accent)}
+.jalur h3{font-size:21px;font-weight:800;margin-top:14px}
+.jalur > p{color:var(--ink-2);font-size:14.5px;margin-top:8px}
+.jalur ul{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:8px;font-size:14px}
+.jalur li{display:flex;gap:10px;align-items:flex-start}
+.jalur li::before{content:"";flex:none;width:18px;height:18px;margin-top:2px;border-radius:50%;background:var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/10px no-repeat}
+.jalur .btn{margin-top:auto;align-self:flex-start}
+.jalur .spacer{flex:1;min-height:18px}
+.notfound{padding:90px 0;text-align:center}
+.notfound h1{font-size:clamp(2rem,5vw,3rem);font-weight:800}
+.notfound p{color:var(--ink-2);margin:10px 0 22px}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;padding:56px 0 40px;overflow-x:clip}
+.hero::before{content:"";position:absolute;width:620px;height:620px;left:-180px;bottom:-260px;border-radius:50%;background:radial-gradient(circle,var(--glow),transparent 65%);pointer-events:none}
+.hero::after{content:"";position:absolute;width:520px;height:520px;right:-200px;top:40px;border-radius:50%;background:radial-gradient(circle,rgba(181,87,107,.14),transparent 65%);pointer-events:none}
+.hero-title{text-align:center;position:relative;z-index:1}
+.hero-title .t1{display:block;max-width:1000px;margin:0 auto;font-weight:800;font-size:clamp(2.2rem,6.6vw,5.6rem);letter-spacing:-.045em;line-height:1.02;color:var(--ink);text-shadow:0 6px 18px rgba(15,26,58,.12);text-wrap:balance}
+.hero-title .t2{display:block;font-weight:800;font-size:clamp(1.55rem,5vw,3.6rem);letter-spacing:-.03em;margin-top:10px;padding-bottom:4px}
+.hero-grid{position:relative;z-index:1;display:grid;gap:28px;margin-top:40px;grid-template-columns:1fr;align-items:center}
+@media (min-width:900px){.hero-grid{grid-template-columns:1fr 1.15fr 1fr;margin-top:56px}}
+.hero-stats{display:flex;gap:14px;justify-content:center;order:3}
+.stat-card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 22px;min-width:150px;box-shadow:var(--shadow)}
+.stat-card .num{font-size:30px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.stat-card .num sup{color:var(--yellow);font-size:16px}
+.stat-card .lbl{margin-top:8px;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+@media (min-width:900px){.hero-stats{order:0;flex-direction:column;align-items:flex-start}.hero-stats .stat-card:nth-child(2){margin-left:36px}}
+/* Lencana hero dinamis: label kecil di atas, teks utama di bawah */
+.hero-stats{flex-wrap:wrap}
+.hero-stats[hidden]{display:none}
+.stat-card .lbl.top{margin:0 0 6px}
+.stat-card.is-link{position:relative;display:block;color:inherit;text-decoration:none;padding-right:40px;transition:border-color .15s,box-shadow .15s,transform .15s}
+.stat-card.is-link:hover{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft),var(--shadow);transform:translateY(-2px)}
+.stat-card.is-link:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.stat-card.is-link .go{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--primary);font-weight:800;font-size:16px}
+@media (prefers-reduced-motion:reduce){.stat-card.is-link:hover{transform:none}}
+.stat-card.txt .num{font-size:20px;letter-spacing:-.01em;line-height:1.15}
+@media (max-width:899px){.hero-stats .stat-card{min-width:0;flex:1 1 150px;max-width:220px;padding:14px 16px}}
+
+.hero-visual{position:relative;aspect-ratio:1;max-width:400px;width:100%;margin:0 auto;order:1}
+.orbit{position:absolute;inset:4%;border:1.5px dashed color-mix(in srgb,var(--primary) 45%,transparent);border-radius:50%;animation:spin 60s linear infinite}
+.orbit-2{position:absolute;inset:22%;border:1px solid color-mix(in srgb,var(--yellow) 40%,transparent);border-radius:50%}
+.halo{position:absolute;inset:18%;border-radius:50%;background:radial-gradient(circle,var(--glow) 0%,transparent 70%);filter:blur(10px)}
+.emblem{position:absolute;inset:27%;display:grid;place-items:center;filter:drop-shadow(0 22px 30px rgba(15,26,58,.28));animation:float 6s ease-in-out infinite}
+.emblem img,.emblem svg{width:100%;height:100%;object-fit:contain}
+/* Logo utama berbentuk lebar: dibuat melebar melewati lingkaran orbit */
+#heroLogo{inset:6% -14% 6% -14%;filter:drop-shadow(0 18px 26px rgba(15,26,58,.22))}
+#heroLogo img{height:auto;max-height:100%}
+.hero-visual .chip.c1{left:-12%;top:4%;bottom:auto;z-index:2;color:var(--ink);text-decoration:none;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+.hero-visual .chip.c1:hover{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-soft),var(--shadow-lg)}
+.hero-visual .chip.c1:focus-visible{outline:3px solid var(--primary);outline-offset:3px}
+.hero-visual .chip.c1 .ext{color:var(--primary);flex:none}
+@media (max-width:600px){.hero-visual .chip.c1{left:-2%;top:0}}
+.odot{position:absolute;border-radius:50%}
+.odot.r{width:18px;height:18px;background:var(--red);top:9%;left:20%;box-shadow:0 0 20px var(--red)}
+.odot.y{width:12px;height:12px;background:var(--yellow);top:21%;right:12%;box-shadow:0 0 16px var(--yellow)}
+.odot.t{width:15px;height:15px;background:var(--teal);bottom:13%;right:24%;box-shadow:0 0 16px var(--teal)}
+.chip{position:absolute;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow-lg);font-size:12.5px;font-weight:700;animation:float 7s ease-in-out infinite}
+.chip .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,var(--g1),var(--g2))}
+.chip small{display:block;font-size:11px;color:var(--muted);font-weight:600}
+.chip.c1{left:-4%;bottom:14%;animation-delay:-2s}
+@keyframes float{50%{transform:translateY(-10px)}}
+
+.hero-copy{order:2;text-align:center}
+.hero-copy p{color:var(--ink-2);font-size:15.5px;line-height:1.7;max-width:360px;margin:0 auto}
+.hero-copy .btns{display:flex;gap:10px;margin-top:22px;justify-content:center;flex-wrap:wrap}
+@media (min-width:900px){.hero-copy{text-align:left}.hero-copy p{margin:0}.hero-copy .btns{justify-content:flex-start}}
+
+/* ---------- Marquee band ---------- */
+.band-wrap{position:relative;padding:28px 0 36px;overflow:hidden}
+.band{background:var(--band);transform:rotate(-2.4deg);margin:0 -40px;box-shadow:0 18px 40px -18px rgba(39,44,120,.55);border-block:1px solid rgba(255,255,255,.08)}
+.band-track{display:flex;width:max-content;animation:marquee 38s linear infinite}
+.band-track span{display:inline-flex;align-items:center;gap:22px;padding:15px 0 15px 22px;color:#fff;font-weight:800;font-size:clamp(15px,2vw,19px);white-space:nowrap}
+.band-track span::after{content:"\2726";color:var(--star);font-size:20px}
+@keyframes marquee{to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.band-track,.orbit,.emblem,.chip{animation:none}}
+
+/* ---------- Sections ---------- */
+.section{padding:72px 0}
+.pg-home > [hidden]{display:none!important}
+/* Laman klaim: info voucher & alur klaim di atas formulir */
+.klaim-info{display:grid;gap:22px;margin:4px 0 26px}
+.klaim-info[hidden],.klaim-info.off{display:none}
+.ki-voucher{padding:28px 26px}
+.ki-voucher .feature{gap:28px}
+.ki-voucher .feature h2{font-size:clamp(1.5rem,3.4vw,2.2rem)}
+.ki-voucher .ticket-wrap{padding:8px}
+.ki-alur .sec-head{margin-bottom:18px}
+.ki-alur .sec-head h2{font-size:clamp(1.4rem,3vw,2rem)}
+@media (max-width:600px){.ki-voucher{padding:20px 16px}.ki-voucher .ticket-wrap{display:none}}
+#panel-voucher{scroll-margin-top:84px}
+.sec-custom:nth-of-type(even){background:linear-gradient(180deg,transparent,var(--bg-soft) 18%,var(--bg-soft) 82%,transparent)}
+section[id],footer[id]{scroll-margin-top:68px}
+.sec-head{text-align:center;max-width:640px;margin:0 auto 40px}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--primary)}
+.eyebrow::before{content:"";width:18px;height:2px;background:currentColor;border-radius:2px}
+.sec-head h2{font-size:clamp(1.9rem,4.4vw,3rem);font-weight:800;margin-top:10px}
+.sec-head p{color:var(--ink-2);margin-top:12px}
+
+/* Prodi grid */
+.prodi-grid{display:grid;gap:18px;grid-template-columns:1fr}
+@media (min-width:620px){.prodi-grid{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:980px){.prodi-grid{grid-template-columns:repeat(3,1fr)}}
+.prodi{position:relative;padding:24px;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.prodi:hover{transform:translateY(-4px);box-shadow:var(--shadow-lg)}
+.prodi .jj{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px}
+.prodi h3{font-size:19px;font-weight:800;margin-top:18px}
+.prodi p{color:var(--ink-2);font-size:14px;margin-top:8px}
+.prodi .go{display:inline-flex;align-items:center;gap:6px;margin-top:16px;font-size:13px;font-weight:700;color:var(--primary)}
+.prodi::after{content:"";position:absolute;right:-40px;top:-40px;width:120px;height:120px;border-radius:50%;background:var(--accent);opacity:.08}
+.skeleton{background:linear-gradient(90deg,var(--line),var(--surface-2),var(--line));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:var(--radius);min-height:190px}
+@keyframes sk{to{background-position:-200% 0}}
+
+/* Voucher feature */
+.feature{display:grid;gap:40px;align-items:center;grid-template-columns:1fr}
+@media (min-width:900px){.feature{grid-template-columns:1.05fr 1fr}}
+.feature h2{font-size:clamp(1.9rem,4.4vw,3rem);font-weight:800;margin-top:10px}
+.feature .lead{color:var(--ink-2);margin-top:14px;max-width:520px}
+.checks{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:12px}
+.checks li{display:flex;gap:12px;align-items:flex-start}
+.checks .ck{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary);margin-top:1px}
+.checks b{display:block}
+.checks span{color:var(--muted);font-size:14px}
+
+.ticket-wrap{position:relative;padding:20px}
+.ticket{position:relative;display:grid;grid-template-columns:1fr auto;border-radius:24px;overflow:hidden;color:#fff;background:linear-gradient(130deg,#1e1b6e 0%,#4338ca 45%,#7c3aed 75%,#b5576b 100%);box-shadow:0 40px 70px -30px rgba(67,56,202,.7);transform:rotate(-3deg)}
+.ticket::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.25),transparent 40%)}
+.ticket .main{padding:28px 26px;position:relative}
+.ticket .tag{font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:800;color:var(--star)}
+.ticket .amount{font-size:clamp(2rem,6vw,2.9rem);font-weight:800;letter-spacing:-.03em;margin-top:6px;line-height:1.05}
+.ticket .code{display:inline-block;margin-top:16px;padding:8px 14px;border-radius:10px;background:rgba(255,255,255,.14);font-family:Consolas,monospace;letter-spacing:.14em;font-weight:700}
+.ticket .valid{font-size:13px;opacity:.85;margin-top:12px}
+.ticket .stub{position:relative;width:96px;border-left:2px dashed rgba(255,255,255,.35);display:grid;place-items:center}
+.ticket .stub::before,.ticket .stub::after{content:"";position:absolute;left:-13px;width:24px;height:24px;border-radius:50%;background:var(--bg)}
+.ticket .stub::before{top:-12px}.ticket .stub::after{bottom:-12px}
+.ticket .stub div{writing-mode:vertical-rl;transform:rotate(180deg);font-weight:800;letter-spacing:.2em;font-size:13px;text-transform:uppercase}
+.bars{position:absolute;left:24px;right:24px;bottom:-8px;height:8px;display:flex;gap:6px}
+.bars i{flex:1;border-radius:0 0 8px 8px}
+.countdown{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap}
+.cd{flex:1;min-width:70px;text-align:center;padding:14px 8px;border-radius:14px;background:var(--surface);border:1px solid var(--line)}
+.cd b{display:block;font-size:24px;font-weight:800;line-height:1}
+.cd small{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+/* Stats band */
+.stats-band{position:relative;padding:44px 0;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--primary-soft) 70%,transparent),transparent)}
+.stats-row{display:grid;grid-template-columns:repeat(2,1fr);gap:24px}
+@media (min-width:800px){.stats-row{grid-template-columns:repeat(4,1fr)}}
+.stats-row div{text-align:center}
+.stats-row b{display:block;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.03em}
+.stats-row span{color:var(--muted);font-weight:600;font-size:14px}
+
+/* Steps */
+.steps{display:grid;gap:18px;grid-template-columns:1fr;counter-reset:st}
+@media (min-width:700px){.steps{grid-template-columns:repeat(2,1fr)}}
+@media (min-width:1000px){.steps{grid-template-columns:repeat(4,1fr)}}
+.step{padding:24px;position:relative}
+.step .n{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;color:#fff}
+.step h3{font-size:17px;font-weight:800;margin-top:16px}
+.step p{font-size:14px;color:var(--ink-2);margin-top:6px}
+
+/* Claim form */
+.claim{display:grid;gap:0;grid-template-columns:1fr;overflow:hidden;padding:0}
+@media (min-width:960px){.claim{grid-template-columns:.9fr 1.1fr}}
+.claim-side{position:relative;padding:34px 28px;background:#0f1a3a;color:#fff;overflow:hidden}
+.claim-side::before{content:"";position:absolute;width:340px;height:340px;right:-120px;bottom:-140px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.55),transparent 65%)}
+.claim-side h2{font-size:clamp(1.7rem,3.6vw,2.4rem);font-weight:800;position:relative}
+.claim-side p{opacity:.8;margin-top:12px;position:relative}
+.claim-side .big{position:relative;margin-top:26px;padding:18px;border-radius:16px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14)}
+.claim-side .big small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--star);font-weight:800}
+.claim-side .big b{display:block;font-size:30px;font-weight:800;margin-top:4px}
+.claim-side ul{position:relative;list-style:none;padding:0;margin:22px 0 0;display:grid;gap:10px;font-size:14px}
+.claim-side li{display:flex;gap:10px;opacity:.9}
+.claim-side li::before{content:"\2726";color:var(--star)}
+.stripe{position:absolute;left:0;right:0;top:0;height:5px;display:flex}
+.stripe i{flex:1}
+.claim-form{padding:30px 24px}
+@media (min-width:640px){.claim-form{padding:34px 34px}}
+.claim-form form{display:grid;gap:16px}
+.closed{display:none;margin-bottom:18px;padding:14px 16px;border-radius:14px;background:var(--warn-soft);color:var(--warn);font-weight:600;font-size:14px}
+.closed.show{display:block}
+.consent{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink-2)}
+.consent input{margin-top:3px;width:16px;height:16px;accent-color:var(--primary)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.req{color:var(--err)}
+.form-title{font-size:20px;font-weight:800}
+.req-note{font-size:13px;color:var(--muted);margin-top:-8px}
+.fs{border:0;padding:0;margin:0;min-width:0}
+.fs legend{font-size:13px;font-weight:700;color:var(--ink-2);padding:0;margin-bottom:6px}
+.opts{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.opt{position:relative;cursor:pointer}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt span{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border-radius:12px;border:1px solid var(--line);background:var(--surface-2);font-size:13.5px;font-weight:600;color:var(--ink-2);transition:border .15s,background .15s,color .15s}
+.opt span::before{content:"";width:16px;height:16px;flex:none;border-radius:5px;border:1.5px solid var(--muted);background:var(--surface);transition:all .15s}
+.opt input[type=radio] + span::before{border-radius:50%}
+.opt:hover span{border-color:var(--primary)}
+.opt input:checked + span{border-color:var(--primary);background:var(--primary-soft);color:var(--ink)}
+.opt input:checked + span::before{border-color:var(--primary);background:var(--primary) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/11px no-repeat}
+.opt input[type=radio]:checked + span::before{background:var(--primary);box-shadow:inset 0 0 0 3px var(--surface)}
+.opt input:focus-visible + span{box-shadow:0 0 0 4px var(--primary-soft)}
+.opt input:disabled + span{opacity:.55;cursor:not-allowed}
+
+/* Tabs pendaftaran */
+.tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:640px;margin:0 auto 22px;padding:6px;border-radius:18px;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+.tab{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:13px;border:2px solid transparent;background:transparent;font-weight:800;font-size:14.5px;color:var(--ink-2);cursor:pointer;transition:background .15s,color .15s}
+.tab:hover{background:var(--bg-soft)}
+.tab svg{color:var(--red)}
+.tab-kip svg{color:var(--kip)}
+.tab[aria-selected="true"]{background:var(--primary);color:#fff;border-color:var(--primary-h)}
+.tab-kip[aria-selected="true"]{background:var(--kip);border-color:var(--kip-d)}
+.tab[aria-selected="true"] svg{color:currentColor}
+.tab:focus-visible{outline:none;box-shadow:0 0 0 4px var(--primary-soft)}
+@media (max-width:420px){.tab{font-size:13px;gap:6px}}
+.claim[hidden]{display:none}
+:root{--kip:#0f7a58;--kip-d:#0a3d2c;--kip-soft:#e6f6ef}
+:root[data-theme="dark"]{--kip:#14a374;--kip-d:#7ee2bd;--kip-soft:#0c2a20}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--kip:#14a374;--kip-d:#7ee2bd;--kip-soft:#0c2a20}}
+.kip .claim-side{background:#0a3d2c}
+.kip .claim-side::before{background:radial-gradient(circle,rgba(31,163,168,.55),transparent 65%)}
+.info-box{padding:12px 14px;border-radius:12px;background:var(--kip-soft);border-left:4px solid var(--kip);font-size:13.5px;color:var(--ink-2);line-height:1.6}
+.checks-inline{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:2px}
+.checks-inline label{display:inline-flex;align-items:center;gap:7px;font-size:14px;cursor:pointer}
+.checks-inline input{width:16px;height:16px;accent-color:var(--kip)}
+.kip .input:focus,.kip .select:focus,.kip .textarea:focus{border-color:var(--kip);box-shadow:0 0 0 4px var(--kip-soft)}
+.kip .consent input{accent-color:var(--kip)}
+.btn-kip{background:var(--kip);color:#fff;box-shadow:0 10px 24px -10px var(--kip)}
+.btn-kip:hover:not(:disabled){filter:brightness(1.08)}
+
+/* Success modal */
+.success-icon{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;margin:0 auto;background:var(--ok-soft);color:var(--ok)}
+.res-code{margin:18px 0;padding:18px;border-radius:16px;border:2px dashed var(--g2);text-align:center;background:color-mix(in srgb,var(--g2) 8%,var(--surface))}
+.res-code small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-weight:800}
+.res-code b{display:block;font-family:Consolas,monospace;font-size:26px;letter-spacing:.12em;color:var(--g1);margin:4px 0}
+.res-code .amt{font-size:20px;font-weight:800}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:14px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;text-align:right;font-weight:600;word-break:break-word}
+
+/* Footer */
+footer{margin-top:40px;padding:40px 0 30px;border-top:1px solid var(--line);background:var(--bg-soft)}
+.foot{display:grid;gap:24px;grid-template-columns:1fr}
+@media (min-width:800px){.foot{grid-template-columns:1.4fr 1fr 1fr}}
+.foot h4{font-size:14px;font-weight:800;margin-bottom:10px}
+.foot p,.foot a{font-size:14px;color:var(--ink-2)}
+.foot a:hover{color:var(--primary)}
+.copy{margin-top:28px;padding-top:18px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.wa-fab{position:fixed;right:18px;bottom:18px;z-index:40;width:54px;height:54px;border-radius:50%;display:none;place-items:center;background:#22a64a;color:#fff;box-shadow:0 14px 30px -10px rgba(34,166,74,.8)}
+.wa-fab.show{display:grid}
+</style>
+</head>
+<body>
+<script>
+  /* Rute laman (diisi server Node) */
+  window.ROUTE = { appUrl: '<?= appUrl ?>', page: '<?= page ?>', slug: '<?= slug ?>', tab: '<?= tab ?>', s: '<?= s ?>', prodi: '<?= prodi ?>' };
+  if (['home', 'klaim', 'p', 'prodi'].indexOf(ROUTE.page) < 0) ROUTE.page = 'home';
+  if (ROUTE.page === 'p' && !ROUTE.slug) ROUTE.page = 'home';
+  if (ROUTE.page === 'prodi' && !ROUTE.prodi) ROUTE.page = 'home';
+  document.body.setAttribute('data-page', ROUTE.page);
+</script>
+
+<header class="nav">
+  <div class="container nav-in">
+    <a href="#beranda" class="brand" target="_self">
+      <div class="brand-logo" id="navLogo"></div>
+      <div class="brand-text">
+        <div class="brand-name" id="brandName">PMB</div>
+        <div class="brand-sub" id="brandSub">Penerimaan Mahasiswa Baru</div>
+      </div>
+    </a>
+    <nav class="nav-links" id="navLinks" aria-label="Menu utama"></nav>
+    <div class="nav-right">
+      <button class="btn-icon" id="themeBtn" type="button" aria-label="Ganti tema"></button>
+      <button class="btn-icon menu-btn" id="menuBtn" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="mnav"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+      <a href="https://join.poltektedc.ac.id" id="ctaBtn" class="btn btn-primary"><span class="lbl" id="ctaLbl">Daftar PMB</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></a>
+    </div>
+  </div>
+</header>
+<nav class="mnav" id="mnav" aria-label="Menu utama (seluler)"></nav>
+
+<main>
+<!-- ================= LAMAN BERANDA ================= -->
+<div class="pg pg-home">
+  <!-- HERO -->
+  <section class="hero" id="beranda">
+    <div class="container">
+      <h1 class="hero-title">
+        <span class="t1" id="heroT1">Seleksi Penerimaan Mahasiswa Baru</span>
+        <span class="t2 grad-text" id="heroT2">Penerimaan Mahasiswa Baru.</span>
+      </h1>
+      <div class="hero-grid">
+        <div class="hero-stats" id="heroLencana"></div>
+        <div class="hero-visual">
+          <div class="halo" aria-hidden="true"></div>
+          <div class="orbit" aria-hidden="true"></div>
+          <div class="orbit-2" aria-hidden="true"></div>
+          <div class="emblem" id="heroLogo"></div>
+          <span class="odot r" aria-hidden="true"></span><span class="odot y" aria-hidden="true"></span><span class="odot t" aria-hidden="true"></span>
+          <a class="chip c1" href="https://join.poltektedc.ac.id/pmb/register" target="_blank" rel="noopener" aria-label="Daftar Sekarang (buka di tab baru)"><span class="ic" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></svg></span><div>Daftar Sekarang</div><svg class="ext" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M8 7h9v9"/></svg></a>
+        </div>
+        <div class="hero-copy">
+          <p id="heroDesc">Daftar sekarang dan klaim voucher potongan biaya pendidikan.</p>
+          <div class="btns" id="heroTombol"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="band-wrap" aria-hidden="true"><div class="band"><div class="band-track" id="bandTrack"></div></div></div>
+
+  <!-- PRODI -->
+  <section class="section" id="prodi">
+    <div class="container">
+      <div class="sec-head">
+        <span class="eyebrow">Pilihan Studi</span>
+        <h2>Program Studi</h2>
+        <p>Pilih program studi yang sesuai minat dan rencana kariermu.</p>
+      </div>
+      <div class="prodi-grid" id="prodiGrid">
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VOUCHER -->
+  <section class="section" id="voucher" style="padding-top:24px">
+    <div class="container feature">
+      <div>
+        <span class="eyebrow">Voucher PMB</span>
+        <h2>Voucher potongan biaya untuk <span class="grad-text">calon mahasiswa.</span></h2>
+        <p class="lead" id="vKet">Isi formulir, lalu kode voucher dikirim otomatis ke emailmu.</p>
+        <ul class="checks">
+          <li><span class="ck"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Nilai voucher</b><span id="vNom">-</span></div></li>
+          <li><span class="ck"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Periode klaim</b><span id="vPeriode">-</span></div></li>
+          <li><span class="ck"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div><b>Masa berlaku voucher</b><span id="vBerlaku">-</span></div></li>
+        </ul>
+        <div class="countdown" id="countdown"></div>
+        <a href="?page=klaim" data-link="?page=klaim" class="btn btn-primary" style="margin-top:24px">Klaim sekarang</a>
+      </div>
+      <div class="ticket-wrap" aria-hidden="true">
+        <div class="ticket">
+          <div class="main">
+            <div class="tag" id="tTag">Voucher PMB</div>
+            <div class="amount" id="tAmount">Rp0</div>
+            <div class="code">PMB-XXXX-XXXX</div>
+            <div class="valid" id="tValid">Berlaku hingga -</div>
+          </div>
+          <div class="stub"><div>Mahasiswa Baru</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section class="stats-band" id="statistik">
+    <div class="container stats-row">
+      <div><b id="s1">0</b><span>Program Studi</span></div>
+      <div><b id="s2">Rp0</b><span>Nilai Voucher</span></div>
+      <div><b id="s3">-</b><span id="s3l">Hari Tersisa</span></div>
+      <div><b id="s4">0</b><span id="s4l">Pendaftar</span></div>
+    </div>
+  </section>
+
+  <!-- ALUR -->
+  <section class="section" id="alur">
+    <div class="container">
+      <div class="sec-head">
+        <span class="eyebrow">Langkah Mudah</span>
+        <h2>Alur Klaim Voucher</h2>
+      </div>
+      <div class="steps">
+        <div class="card step"><div class="n" style="background:var(--red)">1</div><h3>Isi formulir</h3><p>Lengkapi data diri dan pilih program studi tujuan.</p></div>
+        <div class="card step"><div class="n" style="background:#d99a00">2</div><h3>Cek email</h3><p>Kode voucher terkirim otomatis ke email yang kamu daftarkan.</p></div>
+        <div class="card step"><div class="n" style="background:var(--teal)">3</div><h3>Daftar resmi</h3><p>Gunakan kode voucher saat pendaftaran sebelum masa berlaku habis.</p></div>
+        <div class="card step"><div class="n" style="background:var(--green)">4</div><h3>Daftar ulang</h3><p>Panitia PMB menghubungimu untuk proses selanjutnya.</p></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- ================= LAMAN KLAIM VOUCHER & PEMINATAN KIP-K ================= -->
+<div class="pg pg-klaim">
+  <section class="page-hero">
+    <div class="container">
+      <div class="crumb"><a href="?" data-link="?">Beranda</a> / Klaim Voucher</div>
+      <h1>Klaim Voucher &amp; <span class="grad-text">Beasiswa KIP-K.</span></h1>
+      <p>Silakan pilih jenis pendaftaran di bawah ini.</p>
+    </div>
+  </section>
+  <section class="page-body" id="klaim">
+    <div class="container">
+      <div class="tabs" role="tablist" aria-label="Jenis pendaftaran">
+        <button class="tab" type="button" role="tab" id="tab-voucher" data-tab="voucher" aria-controls="panel-voucher" aria-selected="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a3 3 0 0 0 0 6v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3a3 3 0 0 0 0-6V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2Z"/><path d="M13 5v2M13 17v2M13 11v2"/></svg>
+          Klaim Voucher</button>
+        <button class="tab tab-kip" type="button" role="tab" id="tab-kip" data-tab="kip" aria-controls="panel-kip" aria-selected="false" tabindex="-1">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg>
+          Peminatan KIP-K</button>
+      </div>
+
+      <!-- Info voucher & alur klaim (disalin dari bagian beranda), tampil di atas formulir klaim -->
+      <div class="klaim-info" id="klaimInfo"></div>
+
+      <div class="card claim" id="panel-voucher" role="tabpanel" aria-labelledby="tab-voucher">
+        <aside class="claim-side">
+          <div class="stripe"><i style="background:var(--red)"></i><i style="background:var(--yellow)"></i><i style="background:var(--teal)"></i><i style="background:var(--green)"></i></div>
+          <h2>Klaim voucher PMB kamu</h2>
+          <p>Satu email untuk satu voucher. Pastikan email aktif agar kode voucher sampai ke kotak masukmu.</p>
+          <div class="big"><small>Nilai voucher</small><b id="cNom">Rp0</b><span style="font-size:13px;opacity:.8" id="cBerlaku"></span></div>
+          <ul>
+            <li>Kode voucher dikirim otomatis ke email</li>
+            <li>Cek juga folder Spam/Promosi</li>
+            <li>Simpan kode untuk proses pendaftaran</li>
+          </ul>
+        </aside>
+        <div class="claim-form">
+          <div class="closed" id="closedMsg"></div>
+          <form id="claimForm" novalidate>
+            <h3 class="form-title">Formulir Klaim Voucher</h3>
+            <p class="req-note">Semua isian bertanda <span class="req">*</span> wajib diisi.</p>
+            <div class="field">
+              <label for="fNama">Nama lengkap <span class="req">*</span></label>
+              <input class="input" id="fNama" name="nama" autocomplete="name" maxlength="100" required placeholder="Sesuai ijazah">
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="fEmail">Email <span class="req">*</span></label>
+                <input class="input" id="fEmail" name="email" type="email" autocomplete="email" maxlength="120" required placeholder="nama@email.com">
+              </div>
+              <div class="field">
+                <label for="fWa">No. WhatsApp <span class="req">*</span></label>
+                <input class="input" id="fWa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" maxlength="18" required placeholder="08xxxxxxxxxx">
+              </div>
+            </div>
+            <div class="field">
+              <label for="fSekolah">Asal sekolah <span class="req">*</span></label>
+              <input class="input" id="fSekolah" name="sekolah" maxlength="120" required placeholder="SMA/SMK/MA">
+            </div>
+            <fieldset class="field fs">
+              <legend>Program studi peminatan <span class="req">*</span></legend>
+              <span class="hint">Boleh pilih lebih dari satu.</span>
+              <div class="opts" id="fProdiList"><span class="hint">Memuat...</span></div>
+            </fieldset>
+            <fieldset class="field fs">
+              <legend>Dapat informasi klaim voucher dari <span class="req">*</span></legend>
+              <div class="opts" id="fSumberList"><span class="hint">Memuat...</span></div>
+            </fieldset>
+            <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+            <label class="consent"><input type="checkbox" id="fSetuju" required> <span>Saya menyatakan data yang saya isi benar dan bersedia dihubungi panitia PMB. <span class="req">*</span></span></label>
+            <button class="btn btn-primary" type="submit" id="submitBtn" style="height:50px">Kirim &amp; Klaim Voucher</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- PEMINATAN KIP-K -->
+      <div class="card claim kip" id="panel-kip" role="tabpanel" aria-labelledby="tab-kip" hidden>
+        <aside class="claim-side">
+          <div class="stripe"><i style="background:var(--red)"></i><i style="background:var(--yellow)"></i><i style="background:var(--teal)"></i><i style="background:var(--green)"></i></div>
+          <h2>Peminatan Beasiswa KIP Kuliah</h2>
+          <p>Kartu Indonesia Pintar Kuliah (KIP-K) adalah bantuan biaya pendidikan dari pemerintah untuk calon mahasiswa dari keluarga kurang mampu.</p>
+          <ul>
+            <li>Isi formulir peminatan dengan data yang benar</li>
+            <li>Admin menghubungi kamu untuk verifikasi</li>
+            <li>Yang memenuhi syarat diprioritaskan dalam pengusulan KIP-K</li>
+          </ul>
+        </aside>
+        <div class="claim-form">
+          <div class="closed" id="kipClosed"></div>
+          <form id="kipForm" novalidate>
+            <h3 class="form-title">Formulir Peminatan KIP Kuliah</h3>
+            <div class="info-box" id="kipInfo"></div>
+            <div class="field">
+              <label for="kNama">Nama lengkap (sesuai KTP/KK) <span class="req">*</span></label>
+              <input class="input" id="kNama" name="nama" autocomplete="name" maxlength="100" required>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="kEmail">Email <span class="req">*</span></label>
+                <input class="input" id="kEmail" name="email" type="email" autocomplete="email" maxlength="120" required>
+              </div>
+              <div class="field">
+                <label for="kWa">No. WhatsApp <span class="req">*</span></label>
+                <input class="input" id="kWa" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel" maxlength="18" required placeholder="08xxxxxxxxxx">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label for="kSekolah">Asal sekolah <span class="req">*</span></label>
+                <input class="input" id="kSekolah" name="sekolah" maxlength="120" required>
+              </div>
+              <div class="field">
+                <label for="kLulus">Tahun lulus <span class="req">*</span></label>
+                <select class="select" id="kLulus" name="tahunLulus" required></select>
+              </div>
+            </div>
+            <fieldset class="field fs">
+              <legend>Program studi peminatan <span class="req">*</span></legend>
+              <span class="hint">Boleh pilih lebih dari satu.</span>
+              <div class="opts" id="kProdiList"><span class="hint">Memuat...</span></div>
+            </fieldset>
+            <fieldset class="field fs">
+              <legend>Status DTSEN <span class="req">*</span></legend>
+              <span class="hint">Desil keluarga pada Data Tunggal Sosial dan Ekonomi Nasional (DTSEN).</span>
+              <div class="opts" id="kDtsenList"><span class="hint">Memuat...</span></div>
+            </fieldset>
+            <fieldset class="field fs" id="kPipBox" hidden>
+              <legend>Status penerima PIP <span class="req">*</span></legend>
+              <span class="hint">PIP = Program Indonesia Pintar saat sekolah.</span>
+              <div class="opts" id="kPipList"></div>
+            </fieldset>
+            <fieldset class="field fs">
+              <legend>Kartu bantuan yang dimiliki</legend>
+              <div class="checks-inline" id="kKartu"></div>
+            </fieldset>
+            <div class="field">
+              <label for="kKet">Catatan tambahan</label>
+              <textarea class="textarea" id="kKet" name="keterangan" maxlength="1000" rows="3" placeholder="Opsional, misalnya kondisi keluarga, prestasi, dll."></textarea>
+            </div>
+            <div class="hp" aria-hidden="true"><label>Website <input name="website" tabindex="-1" autocomplete="off"></label></div>
+            <label class="consent"><input type="checkbox" id="kSetuju" required> <span>Saya menyatakan data yang saya isi benar dan bersedia dihubungi oleh admin untuk proses verifikasi. <span class="req">*</span></span></label>
+            <button class="btn btn-kip" type="submit" id="kipBtn" style="height:50px">Kirim Data Peminatan</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= LAMAN KUSTOM (dikelola admin, mis. Jalur Masuk) ================= -->
+<div class="pg pg-custom">
+  <section class="page-hero">
+    <div class="container">
+      <div class="crumb"><a href="?" data-link="?">Beranda</a> / <span id="cpCrumb"></span></div>
+      <h1 id="cpTitle">Memuat...</h1>
+      <p id="cpSub"></p>
+    </div>
+  </section>
+  <section class="page-body">
+    <div class="container">
+      <div class="page-text" id="cpText"></div>
+      <div class="media-stack" id="cpMediaTop"></div>
+      <div class="jalur-grid" id="cpItems"></div>
+      <div class="media-stack bottom" id="cpMediaBottom"></div>
+    </div>
+  </section>
+</div>
+
+<!-- ================= PROFIL PROGRAM STUDI ================= -->
+<div class="pg pg-prodi" id="ppRoot">
+  <section class="page-hero">
+    <div class="container">
+      <div class="crumb"><a href="?" data-link="?">Beranda</a> / <a href="#prodi" data-link="#prodi">Program Studi</a> / <span id="ppCrumb"></span></div>
+      <div class="pp-badge" id="ppBadge"></div>
+      <h1 id="ppTitle">Memuat...</h1>
+      <p id="ppDesc"></p>
+      <div class="pp-facts" id="ppFacts"></div>
+    </div>
+  </section>
+  <section class="page-body">
+    <div class="container pp-grid">
+      <div class="pp-main" id="ppMain"></div>
+      <aside class="pp-side">
+        <div class="pp-cta">
+          <h3>Tertarik dengan prodi ini?</h3>
+          <p>Klaim voucher potongan biaya pendidikan, lalu lanjutkan pendaftaran PMB.</p>
+          <a class="btn btn-primary" id="ppKlaim" href="?page=klaim">Klaim Voucher</a>
+          <a class="btn btn-ghost" id="ppDaftar" href="https://join.poltektedc.ac.id">Daftar PMB</a>
+        </div>
+        <div class="card pp-others"><h3>Program studi lainnya</h3><div id="ppOthers"></div></div>
+      </aside>
+    </div>
+  </section>
+</div>
+
+<!-- ================= TIDAK DITEMUKAN ================= -->
+<div class="pg pg-404">
+  <section class="notfound">
+    <div class="container">
+      <h1>Halaman tidak ditemukan</h1>
+      <p>Halaman yang kamu cari tidak tersedia atau sudah dinonaktifkan.</p>
+      <a class="btn btn-primary" href="?" data-link="?">Kembali ke beranda</a>
+    </div>
+  </section>
+</div>
+</main>
+
+<footer id="kontak">
+  <div class="container">
+    <div class="foot">
+      <div>
+        <div class="brand"><div class="brand-logo" id="footLogo"></div><div class="brand-text"><div class="brand-name" id="footName">PMB</div><div class="brand-sub" id="footSub"></div></div></div>
+        <p style="margin-top:14px;max-width:380px" id="footAlamat"></p>
+      </div>
+      <div>
+        <h4>Kontak PMB</h4>
+        <p id="footWa"></p>
+        <p id="footEmail"></p>
+      </div>
+      <div>
+        <h4>Navigasi</h4>
+        <div id="footNav"></div>
+      </div>
+    </div>
+    <div class="copy"><span id="copyText"></span><span>Penerimaan Mahasiswa Baru</span></div>
+  </div>
+</footer>
+
+<a class="wa-fab" id="waFab" href="#" target="_blank" rel="noopener" aria-label="Chat WhatsApp panitia PMB">
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 14.4c-.3-.1-1.7-.8-2-.9-.3-.1-.5-.1-.7.1-.2.3-.8.9-.9 1.1-.2.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.6l.4-.5c.2-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.9-2.2c-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 2.4 1 2.9.8 3.4.7.5-.1 1.7-.7 2-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3zM12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2c-1.5 0-3-.4-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2z"/></svg>
+</a>
+
+<div class="modal" id="okModal" role="dialog" aria-modal="true" aria-labelledby="okTitle">
+  <div class="modal-box">
+    <div class="modal-body" style="padding-top:28px">
+      <div class="success-icon"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+      <h3 id="okTitle" style="text-align:center;font-size:22px;font-weight:800;margin-top:16px">Voucher berhasil diklaim!</h3>
+      <p id="okMsg" style="text-align:center;color:var(--ink-2);margin-top:8px;font-size:14px"></p>
+      <div class="res-code"><small>Kode voucher</small><b id="okKode"></b><div class="amt" id="okNom"></div></div>
+      <dl class="kv" id="okKv"></dl>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" type="button" id="copyBtn">Salin kode</button>
+      <button class="btn btn-primary" type="button" data-close>Selesai</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script>
+(function(){
+  const $ = s => document.querySelector(s);
+  const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const rupiah = n => 'Rp' + String(parseInt(n,10)||0).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+  const shortRp = n => { n = parseInt(n,10)||0; if (n >= 1e6) return 'Rp' + (Math.round(n/1e5)/10).toString().replace('.',',') + ' Jt'; if (n >= 1e3) return 'Rp' + Math.round(n/1e3) + ' Rb'; return 'Rp' + n; };
+  const tgl = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso||''); return m ? (+m[3]) + ' ' + BULAN[+m[2]-1] + ' ' + m[1] : '-'; };
+  const daysBetween = (a, b) => Math.round((Date.UTC(+b.slice(0,4), +b.slice(5,7)-1, +b.slice(8,10)) - Date.UTC(+a.slice(0,4), +a.slice(5,7)-1, +a.slice(8,10))) / 864e5);
+  const ACCENTS = ['var(--red)','#d99a00','var(--teal)','var(--green)','var(--g1)','var(--g2)'];
+
+  const EMBLEM = '<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Logo">' +
+    '<path d="M16 22h70l-20 20 34 34-24 24-34-34-26 22z" fill="#e0322b" stroke="#e0322b" stroke-width="10" stroke-linejoin="round"/>' +
+    '<rect x="106" y="14" width="80" height="22" rx="7" fill="#ffc107"/><rect x="106" y="44" width="80" height="22" rx="7" fill="#ffc107"/><rect x="112" y="74" width="74" height="22" rx="7" fill="#ffc107"/>' +
+    '<rect x="14" y="108" width="172" height="24" rx="8" fill="#1fa3a8"/><rect x="14" y="140" width="172" height="20" rx="8" fill="#1fa3a8" opacity=".85"/>' +
+    '<rect x="14" y="170" width="172" height="20" rx="10" fill="#22a64a"/></svg>';
+
+  function api(fn, ...args){
+    return new Promise((res, rej) => {
+      if (typeof window.__API_BASE__ === 'string') {
+        fetch(window.__API_BASE__ + '/api/' + fn, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ args }) })
+          .then(r => r.json().catch(() => ({ error: 'Respon server tidak valid (HTTP ' + r.status + ').' })))
+          .then(j => j.error ? rej(new Error(j.error)) : res(j.result))
+          .catch(() => rej(new Error('Tidak dapat terhubung ke server.')));
+      } else if (window.__MOCK__ && window.__MOCK__[fn]) {
+        setTimeout(() => { try { res(window.__MOCK__[fn](...args)); } catch (e) { rej(e); } }, 400);
+      } else rej(new Error('Server tidak tersedia.'));
+    });
+  }
+  function toast(msg, type){
+    const t = document.createElement('div');
+    t.className = 'toast ' + (type||''); t.textContent = msg;
+    $('#toasts').appendChild(t); setTimeout(() => t.remove(), 4800);
+  }
+
+  /* ---- Theme ---- */
+  const ICON_MOON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>';
+  const ICON_SUN = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  function isDark(){ const t = document.documentElement.getAttribute('data-theme'); return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; }
+  function paintThemeBtn(){ $('#themeBtn').innerHTML = isDark() ? ICON_SUN : ICON_MOON; }
+  try { const saved = localStorage.getItem('pmb-theme'); if (saved) document.documentElement.setAttribute('data-theme', saved); } catch(e){}
+  paintThemeBtn();
+  $('#themeBtn').addEventListener('click', () => {
+    const next = isDark() ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('pmb-theme', next); } catch(e){}
+    paintThemeBtn();
+  });
+
+  /* ---- Render ---- */
+  let DATA = null;
+  let layoutIo = null; // observer menu aktif saat menggulir (dipakai juga oleh bagian kustom)
+  const DEFAULT_LOGO = '/assets/logo.png';
+  function logoHtml(s){ return '<img src="' + esc(s.logoUrl || DEFAULT_LOGO) + '" alt="Logo ' + esc(s.namaKampus) + '">'; }
+  function berlakuText(s){ return s.masaBerlakuMode === 'hari' ? (parseInt(s.masaBerlakuHari,10)||30) + ' hari sejak voucher diterima' : 'Hingga ' + tgl(s.masaBerlakuTanggal); }
+
+  function render(){
+    const s = DATA.settings, w = DATA.window;
+    document.title = ROUTE.page === 'klaim' ? 'Klaim Voucher & KIP-K - PMB ' + s.namaKampus : 'PMB ' + s.namaKampus;
+    renderMenu();
+    if (ROUTE.page === 'p') renderCustom();
+    if (ROUTE.page === 'prodi') renderProdiPage();
+    ['#navLogo','#footLogo'].forEach(id => $(id).innerHTML = logoHtml(s));
+    // logo utama hero (gambar lebar) - berbeda dari logo kecil di navbar/footer
+    $('#heroLogo').innerHTML = '<img src="/assets/logo-utama.png" width="727" height="441" alt="Penerimaan Mahasiswa Baru ' + esc(s.namaKampus) + '">';
+    $('#brandName').textContent = s.namaKampus; $('#footName').textContent = s.namaKampus;
+    $('#brandSub').textContent = s.tagline + ' ' + s.tahunAkademik; $('#footSub').textContent = s.tagline + ' ' + s.tahunAkademik;
+    $('#heroT1').textContent = s.heroJudul || 'Seleksi Penerimaan Mahasiswa Baru';
+    $('#heroT2').textContent = s.namaKampus + '.';
+    $('#heroDesc').textContent = s.deskripsi;
+
+    if (ROUTE.page === 'home') renderLayout();
+
+    renderHero(s);
+
+    // pita berjalan (diatur di admin > Hero Beranda)
+    const pita = s.heroPita || { aktif: true, prodi: true, teks: [] };
+    const items = (pita.prodi ? DATA.prodi.map(p => (p.jenjang ? p.jenjang + ' ' : '') + p.nama) : []).concat(pita.teks || []);
+    const html = items.map(i => '<span>' + esc(i) + '</span>').join('');
+    $('#bandTrack').innerHTML = html + html;
+    const band = document.querySelector('.pg-home > .band-wrap');
+    if (band && (!pita.aktif || !items.length)) band.hidden = true; // tetap tersembunyi juga bila hero disembunyikan di Tata Letak
+
+    // prodi
+    $('#prodiGrid').innerHTML = DATA.prodi.length ? DATA.prodi.map((p, i) => {
+      const a = ACCENTS[i % ACCENTS.length];
+      return '<article class="card prodi" style="--accent:' + a + '"><div class="jj" style="background:' + a + '">' + esc(p.jenjang || '-') + '</div>' +
+        '<h3>' + esc(p.nama) + '</h3><p>' + esc(p.deskripsi || '') + '</p>' +
+        '<div class="links"><a class="go more" href="' + esc(prodiUrl(p.id)) + '">Lihat selengkapnya &rarr;</a>' +
+        '<a class="go" href="' + esc(link('?page=klaim&prodi=' + encodeURIComponent(p.id))) + '">Klaim voucher</a></div></article>';
+    }).join('') : '<p class="muted" style="grid-column:1/-1;text-align:center">Program studi belum tersedia.</p>';
+
+    // voucher section
+    $('#vKet').textContent = s.voucherKeterangan;
+    $('#vNom').textContent = rupiah(s.voucherNominal) + ' potongan biaya';
+    $('#vPeriode').textContent = tgl(s.klaimMulai) + ' s.d. ' + tgl(s.klaimSelesai);
+    $('#vBerlaku').textContent = berlakuText(s);
+    $('#tTag').textContent = 'Voucher PMB ' + s.tahunAkademik;
+    $('#tAmount').textContent = rupiah(s.voucherNominal);
+    $('#tValid').textContent = berlakuText(s);
+
+    const today = DATA.today;
+    const sisa = s.klaimSelesai ? daysBetween(today, s.klaimSelesai) : null;
+    const cds = [];
+    if (w.open && sisa != null) cds.push(['' + Math.max(0, sisa), 'Hari lagi']);
+    if (w.sisaKuota != null) cds.push(['' + w.sisaKuota, 'Sisa kuota']);
+    cds.push([w.open ? 'Buka' : 'Tutup', 'Status klaim']);
+    $('#countdown').innerHTML = cds.map(c => '<div class="cd"><b>' + esc(c[0]) + '</b><small>' + esc(c[1]) + '</small></div>').join('');
+
+    // stats band
+    $('#s1').textContent = DATA.stats.prodi;
+    $('#s2').textContent = shortRp(s.voucherNominal);
+    $('#s3').textContent = (w.open && sisa != null) ? Math.max(0, sisa) : '-';
+    $('#s3l').textContent = w.open ? 'Hari Tersisa' : 'Klaim Ditutup';
+    if (w.sisaKuota != null) { $('#s4').textContent = w.sisaKuota; $('#s4l').textContent = 'Sisa Kuota Voucher'; }
+    else { $('#s4').textContent = DATA.stats.pendaftar; $('#s4l').textContent = 'Voucher Diklaim'; }
+
+    if (ROUTE.page === 'klaim') renderKlaimInfo();
+
+    // claim side + form
+    $('#cNom').textContent = rupiah(s.voucherNominal);
+    $('#cBerlaku').textContent = 'Masa berlaku: ' + berlakuText(s).replace(/^Hingga/, 'hingga');
+    const label = p => (p.jenjang ? p.jenjang + ' ' : '') + p.nama;
+    $('#fProdiList').innerHTML = DATA.prodi.length
+      ? DATA.prodi.map(p => '<label class="opt"><input type="checkbox" name="prodiIds" value="' + esc(p.id) + '"><span>' + esc(label(p)) + '</span></label>').join('')
+      : '<span class="hint">Program studi belum tersedia.</span>';
+    $('#fSumberList').innerHTML = (DATA.sumberInfo || []).map(x => '<label class="opt"><input type="radio" name="sumberInfo" value="' + esc(x) + '"><span>' + esc(x) + '</span></label>').join('');
+    if (ROUTE.prodi) {
+      const cb = [...document.querySelectorAll('#fProdiList input')].find(x => x.value === ROUTE.prodi);
+      if (cb) cb.checked = true;
+    }
+    setOpen(w);
+
+    // form KIP-K
+    const k = DATA.kip;
+    $('#kipInfo').textContent = k.keterangan || '';
+    $('#kipInfo').style.display = k.keterangan ? '' : 'none';
+    $('#kLulus').innerHTML = '<option value="">-- Pilih --</option>' + k.tahunLulus.map(y => '<option>' + esc(y) + '</option>').join('');
+    $('#kProdiList').innerHTML = DATA.prodi.length
+      ? DATA.prodi.map(p => '<label class="opt"><input type="checkbox" name="prodiIds" value="' + esc(p.id) + '"><span>' + esc(label(p)) + '</span></label>').join('')
+      : '<span class="hint">Program studi belum tersedia.</span>';
+    if (ROUTE.prodi) {
+      const cb = [...document.querySelectorAll('#kProdiList input')].find(x => x.value === ROUTE.prodi);
+      if (cb) cb.checked = true;
+    }
+    const radios = (name, list) => list.map(x => '<label class="opt"><input type="radio" name="' + name + '" value="' + esc(x) + '"><span>' + esc(x) + '</span></label>').join('');
+    $('#kDtsenList').innerHTML = radios('dtsen', k.dtsen);
+    $('#kPipList').innerHTML = radios('pip', k.pip);
+    $('#kPipBox').hidden = true;
+    $('#kKartu').innerHTML = k.kartu.map(x => '<label><input type="checkbox" name="kartu" value="' + esc(x) + '"> ' + esc(x) + '</label>').join('');
+    [...$('#kipForm').elements].forEach(el => el.disabled = !k.window.open);
+    $('#kipClosed').textContent = k.window.reason || '';
+    $('#kipClosed').classList.toggle('show', !k.window.open);
+
+    // footer
+    $('#footAlamat').textContent = s.alamat || '';
+    $('#footWa').innerHTML = s.kontakWa ? 'WhatsApp: <a href="https://wa.me/' + esc(s.kontakWa) + '" target="_blank" rel="noopener">+' + esc(s.kontakWa) + '</a>' : '';
+    $('#footEmail').innerHTML = s.kontakEmail ? 'Email: <a href="mailto:' + esc(s.kontakEmail) + '">' + esc(s.kontakEmail) + '</a>' : '';
+    $('#copyText').textContent = '© ' + new Date().getFullYear() + ' ' + s.namaKampus;
+    if (s.kontakWa) { $('#waFab').href = 'https://wa.me/' + s.kontakWa; $('#waFab').classList.add('show'); }
+  }
+
+  /* ---- Hero: lencana (kiri logo) & tombol (kanan logo), diatur di admin > Hero Beranda ---- */
+  const ARROW = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>';
+  function heroText(t, s){
+    return String(t || '').replace(/\{nominal\}/g, shortRp(s.voucherNominal)).replace(/\{prodi\}/g, String(DATA.stats.prodi));
+  }
+  function renderHero(s){
+    const L = Array.isArray(s.heroLencana) ? s.heroLencana : [];
+    $('#heroLencana').innerHTML = L.map(x => {
+      const t = heroText(x.teks, s), small = t.length > 9; // teks panjang memakai ukuran lebih kecil
+      const inner = (x.ket ? '<div class="lbl top">' + esc(heroText(x.ket, s)) + '</div>' : '') + '<div class="num">' + esc(t) + '</div>';
+      if (!x.url) return '<div class="stat-card' + (small ? ' txt' : '') + '">' + inner + '</div>';
+      // lencana dengan link: tautan luar dibuka di tab baru
+      const href = link(x.url), ext = /^https?:\/\//i.test(href);
+      return '<a class="stat-card is-link' + (small ? ' txt' : '') + '" href="' + esc(href) + '"' + (ext ? ' target="_blank" rel="noopener"' : '') + (href.charAt(0) === '#' ? ' target="_self"' : '') +
+        ' aria-label="' + esc((x.ket ? heroText(x.ket, s) + ' ' : '') + t + (ext ? ' (buka di tab baru)' : '')) + '">' + inner + '<span class="go" aria-hidden="true">' + (ext ? '&#8599;' : '&rarr;') + '</span></a>';
+    }).join('');
+    $('#heroLencana').hidden = !L.length;
+    const T = Array.isArray(s.heroTombol) ? s.heroTombol : [];
+    $('#heroTombol').innerHTML = T.map(b => {
+      const href = link(b.url), ext = /^https?:\/\//i.test(href);
+      return '<a href="' + esc(href) + '" class="btn ' + (b.gaya === 'utama' ? 'btn-dark' : 'btn-ghost') + '"' +
+        (ext ? ' target="_blank" rel="noopener"' : '') + (href.charAt(0) === '#' ? ' target="_self"' : '') + '>' +
+        esc(b.label) + (b.gaya === 'utama' ? ' ' + ARROW : '') + '</a>';
+    }).join('');
+    $('#heroTombol').hidden = !T.length;
+  }
+
+  function setOpen(w){
+    const f = $('#claimForm');
+    [...f.elements].forEach(el => el.disabled = !w.open);
+    $('#closedMsg').textContent = w.reason || '';
+    $('#closedMsg').classList.toggle('show', !w.open);
+  }
+
+  /* ---- Tabs pendaftaran ---- */
+  const TABS = ['voucher', 'kip'];
+  /* Laman klaim: tampilkan Info Voucher & Alur Klaim dari beranda di atas formulir.
+     Disalin dari DOM beranda yang sudah terisi agar isi dan tampilannya selalu sama. */
+  function renderKlaimInfo(){
+    const box = $('#klaimInfo'); if (!box) return;
+    const strip = el => { el.removeAttribute('id'); el.querySelectorAll('[id]').forEach(x => x.removeAttribute('id')); return el; };
+    const parts = [];
+    const feat = document.querySelector('#voucher .feature');
+    if (feat) {
+      const f = strip(feat.cloneNode(true));
+      f.classList.remove('container');
+      // tombol "Klaim sekarang" diarahkan ke formulir di bawahnya
+      f.querySelectorAll('a[href*="page=klaim"]').forEach(a => { a.setAttribute('href', '#panel-voucher'); a.setAttribute('target', '_self'); a.removeAttribute('data-link'); a.textContent = 'Isi formulir klaim'; });
+      const card = document.createElement('div'); card.className = 'card ki-voucher'; card.appendChild(f); parts.push(card);
+    }
+    const alur = document.querySelector('#alur .container');
+    if (alur) {
+      const a = strip(alur.cloneNode(true)); a.classList.remove('container'); a.classList.add('ki-alur'); parts.push(a);
+    }
+    box.replaceChildren(...parts);
+    box.hidden = !parts.length;
+  }
+
+  function showTab(name, focus){
+    TABS.forEach(t => {
+      const on = t === name;
+      $('#tab-' + t).setAttribute('aria-selected', on ? 'true' : 'false');
+      $('#tab-' + t).tabIndex = on ? 0 : -1;
+      $('#panel-' + t).hidden = !on;
+    });
+    // info voucher & alur klaim hanya relevan untuk tab Klaim Voucher
+    const ki = $('#klaimInfo'); if (ki) ki.classList.toggle('off', name !== 'voucher');
+    if (focus) $('#tab-' + name).focus();
+  }
+  document.querySelectorAll('.tab').forEach(b => {
+    b.addEventListener('click', () => showTab(b.dataset.tab));
+    b.addEventListener('keydown', e => {
+      if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+      const i = TABS.indexOf(b.dataset.tab), n = TABS[(i + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length];
+      showTab(n, true);
+    });
+  });
+  if (ROUTE.page === 'klaim') showTab(ROUTE.tab === 'kip' ? 'kip' : 'voucher');
+
+  /* ---- Tautan antar laman ----
+     '?page=klaim'   -> laman klaim      '#prodi' -> bagian di beranda
+     'https://...'   -> tautan luar      '?'      -> beranda               */
+  const BASE = ROUTE.appUrl || '/';
+  function link(u){
+    u = String(u || '');
+    if (/^https?:\/\//i.test(u)) return u;
+    if (u === '?' || u === '') return BASE;
+    if (u.charAt(0) === '?') return BASE + u;
+    if (u.charAt(0) === '#') return ROUTE.page === 'home' ? u : BASE + '?s=' + encodeURIComponent(u.slice(1));
+    return BASE;
+  }
+  function menuHref(m){
+    switch (m.type) {
+      case 'section': return link('#' + m.value);
+      case 'klaim': return link('?page=klaim');
+      case 'kip': return link('?page=klaim&tab=kip');
+      case 'page': return link('?page=p&slug=' + encodeURIComponent(m.value));
+      default: return link(m.value);
+    }
+  }
+  function anchor(href, text, attrs){
+    const self = href.charAt(0) === '#' ? ' target="_self"' : '';
+    return '<a href="' + esc(href) + '"' + self + (attrs || '') + '>' + text + '</a>';
+  }
+  function isActive(m){
+    if (m.children && m.children.length && m.children.some(isActive)) return true;
+    if (ROUTE.page === 'klaim') return m.type === 'kip' ? ROUTE.tab === 'kip' : m.type === 'klaim';
+    if (ROUTE.page === 'p') return m.type === 'page' && m.value === ROUTE.slug;
+    if (ROUTE.page === 'prodi') return m.type === 'section' && m.value === 'prodi';
+    return false;
+  }
+  function applyLinks(){
+    document.querySelectorAll('[data-link]').forEach(a => {
+      const h = link(a.getAttribute('data-link'));
+      a.setAttribute('href', h);
+      if (h.charAt(0) === '#') a.setAttribute('target', '_self');
+    });
+  }
+  applyLinks();
+
+  $('#menuBtn').addEventListener('click', () => {
+    const open = !$('#mnav').classList.contains('open');
+    $('#mnav').classList.toggle('open', open);
+    $('#menuBtn').setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  $('#mnav').addEventListener('click', e => {
+    const sb = e.target.closest('.msub-btn');
+    if (sb) { const o = sb.getAttribute('aria-expanded') !== 'true'; sb.setAttribute('aria-expanded', o); document.getElementById(sb.getAttribute('aria-controls')).classList.toggle('open', o); return; }
+    if (e.target.closest('a')) { $('#mnav').classList.remove('open'); $('#menuBtn').setAttribute('aria-expanded', 'false'); }
+  });
+  // Dropdown desktop: klik untuk buka/tutup (juga untuk layar sentuh & keyboard)
+  function closeDropdowns(except){
+    document.querySelectorAll('.dd.open').forEach(d => { if (d !== except) { d.classList.remove('open'); d.querySelector('.dd-btn').setAttribute('aria-expanded', 'false'); } });
+  }
+  $('#navLinks').addEventListener('click', e => {
+    const b = e.target.closest('.dd-btn'); if (!b) return;
+    const dd = b.parentElement, o = !dd.classList.contains('open');
+    closeDropdowns(dd); dd.classList.toggle('open', o); b.setAttribute('aria-expanded', o);
+  });
+  document.addEventListener('click', e => { if (!e.target.closest('.dd')) closeDropdowns(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDropdowns(); });
+
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-close]') || e.target.classList.contains('modal')) $('#okModal').classList.remove('show');
+  });
+  // Kartu bantuan: "Tidak Ada" eksklusif
+  $('#kKartu').addEventListener('change', e => {
+    const cb = e.target; if (!cb.checked) return;
+    $('#kKartu').querySelectorAll('input').forEach(x => {
+      if (x !== cb && (cb.value === 'Tidak Ada' || x.value === 'Tidak Ada')) x.checked = false;
+    });
+  });
+  // Desil 5 & 6: tampilkan pertanyaan status penerima PIP
+  const needPip = v => !!(DATA && DATA.kip && (DATA.kip.dtsenPip || []).includes(v));
+  const syncPip = () => {
+    const sel = $('#kipForm').querySelector('input[name="dtsen"]:checked');
+    const show = !!sel && needPip(sel.value);
+    $('#kPipBox').hidden = !show;
+    if (!show) $('#kPipList').querySelectorAll('input').forEach(x => x.checked = false);
+  };
+  $('#kDtsenList').addEventListener('change', syncPip);
+
+  function showResult(o){
+    $('#okTitle').textContent = o.title;
+    $('#okMsg').innerHTML = o.msg;
+    $('.res-code').style.display = o.kode ? '' : 'none';
+    $('#copyBtn').style.display = o.kode ? '' : 'none';
+    if (o.kode) { $('#okKode').textContent = o.kode; $('#okNom').textContent = o.nominal; }
+    $('#okKv').innerHTML = o.kv.map(r => '<dt>' + esc(r[0]) + '</dt><dd>' + r[1] + '</dd>').join('');
+    $('#okModal').classList.add('show');
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#okModal').classList.remove('show'); });
+
+  // menu aktif saat menggulir beranda
+  if (ROUTE.page === 'home') {
+    const io = layoutIo = new IntersectionObserver(es => es.forEach(en => {
+      if (en.isIntersecting) document.querySelectorAll('#navLinks a, #mnav a').forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + en.target.id));
+    }), { rootMargin: '-45% 0px -50% 0px' });
+    ['beranda','prodi','voucher','statistik','alur','kontak'].forEach(id => { const el = document.getElementById(id); if (el) io.observe(el); });
+  }
+
+  const CARET = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  function selfActive(m){ const c = Object.assign({}, m, { children: [] }); return isActive(c); }
+  function renderMenu(){
+    const s = DATA.settings, menu = DATA.menu || [];
+    const act = m => (selfActive(m) ? ' class="active" aria-current="page"' : '');
+    // Desktop
+    $('#navLinks').innerHTML = menu.map((m, i) => {
+      const kids = m.children || [];
+      if (!kids.length) return anchor(menuHref(m), esc(m.label), act(m));
+      const head = m.type !== 'group' ? anchor(menuHref(m), esc(m.label), ' class="parent"') + '<hr>' : '';
+      return '<div class="dd"><button class="dd-btn' + (isActive(m) ? ' active' : '') + '" type="button" aria-expanded="false" aria-haspopup="true" aria-controls="dd' + i + '">' + esc(m.label) + CARET + '</button>' +
+        '<div class="dd-menu" id="dd' + i + '" role="menu">' + head + kids.map(c => anchor(menuHref(c), esc(c.label), act(c))).join('') + '</div></div>';
+    }).join('');
+    // Seluler
+    $('#mnav').innerHTML = menu.map((m, i) => {
+      const kids = m.children || [];
+      if (!kids.length) return anchor(menuHref(m), esc(m.label), act(m));
+      const open = isActive(m);
+      const head = m.type !== 'group' ? anchor(menuHref(m), esc(m.label), act(m)) : '';
+      return '<button class="msub-btn' + (open ? ' active' : '') + '" type="button" aria-expanded="' + open + '" aria-controls="ms' + i + '">' + esc(m.label) + CARET + '</button>' +
+        '<div class="msub' + (open ? ' open' : '') + '" id="ms' + i + '">' + head + kids.map(c => anchor(menuHref(c), esc(c.label), act(c))).join('') + '</div>';
+    }).join('');
+    // Footer
+    $('#footNav').innerHTML = menu.map(m => {
+      const kids = m.children || [];
+      const top = m.type === 'group' ? '<p><b style="font-size:14px">' + esc(m.label) + '</b></p>' : '<p>' + anchor(menuHref(m), esc(m.label)) + '</p>';
+      return top + kids.map(c => '<p>' + anchor(menuHref(c), esc(c.label), ' class="fsub"') + '</p>').join('');
+    }).join('');
+    $('#ctaLbl').textContent = s.ctaLabel || 'Daftar PMB';
+    $('#ctaBtn').setAttribute('href', link(s.ctaUrl || 'https://join.poltektedc.ac.id'));
+    $('#ctaBtn').setAttribute('aria-label', s.ctaLabel || 'Daftar PMB');
+  }
+
+  function prodiUrl(id){ return link('?page=prodi&prodi=' + encodeURIComponent(id)); }
+  function linesOf(t){ return String(t || '').split('\n').map(x => x.replace(/^\s*[-*\d.)]+\s+/, '').trim()).filter(Boolean); }
+  function renderProdiPage(){
+    const p = DATA.prodiDetail, s = DATA.settings;
+    if (!p) { document.body.setAttribute('data-page', '404'); document.title = 'Halaman tidak ditemukan - PMB ' + s.namaKampus; return; }
+    const idx = Math.max(0, DATA.prodi.findIndex(x => x.id === p.id));
+    const accent = ACCENTS[idx % ACCENTS.length];
+    const label = (p.jenjang ? p.jenjang + ' ' : '') + p.nama;
+    const f = p.profil || {};
+    $('#ppRoot').style.setProperty('--accent', accent);
+    document.title = label + ' - PMB ' + s.namaKampus;
+    $('#ppCrumb').textContent = label;
+    $('#ppBadge').textContent = p.jenjang || 'Prodi';
+    $('#ppTitle').textContent = p.nama;
+    $('#ppDesc').textContent = p.deskripsi || '';
+    const facts = [['Jenjang', p.jenjang], ['Akreditasi', f.akreditasi], ['Gelar lulusan', f.gelar], ['Lama studi', f.lamaStudi]].filter(x => x[1]);
+    $('#ppFacts').innerHTML = facts.map(x => '<div class="pp-fact"><small>' + esc(x[0]) + '</small><b>' + esc(x[1]) + '</b></div>').join('');
+
+    const sec = (title, body) => '<section class="card pp-sec"><h2>' + esc(title) + '</h2>' + body + '</section>';
+    const list = (t, cls) => '<ul class="pp-list ' + (cls || '') + '">' + linesOf(t).map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>';
+    let html = '';
+    if (f.fotoUrl) html += '<div class="pp-photo"><img src="' + esc(f.fotoUrl) + '" alt="Foto ' + esc(label) + '" loading="lazy"></div>';
+    if (f.tentang) html += sec('Tentang program studi', '<div class="txt">' + textBlocks(f.tentang) + '</div>');
+    if (f.visi || f.misi) html += sec('Visi & misi', (f.visi ? '<div class="txt"><b>Visi</b><p>' + esc(f.visi) + '</p></div>' : '') + (f.misi ? '<div class="txt"><b>Misi</b></div>' + list(f.misi, 'num') : ''));
+    if (f.keunggulan) html += sec('Keunggulan & kompetensi lulusan', list(f.keunggulan));
+    if (f.karier) html += sec('Prospek karier', '<div class="pp-chips">' + linesOf(f.karier).map(x => '<span>' + esc(x) + '</span>').join('') + '</div>');
+    if (!html) html = '<div class="card pp-empty">Profil lengkap program studi ini sedang disiapkan. Hubungi panitia PMB untuk informasi lebih lanjut.</div>';
+    $('#ppMain').innerHTML = html;
+
+    $('#ppKlaim').setAttribute('href', link('?page=klaim&prodi=' + encodeURIComponent(p.id)));
+    $('#ppDaftar').setAttribute('href', link(s.ctaUrl || 'https://join.poltektedc.ac.id'));
+    $('#ppDaftar').textContent = s.ctaLabel || 'Daftar PMB';
+    const others = DATA.prodi.filter(x => x.id !== p.id);
+    $('#ppOthers').innerHTML = others.length ? others.map(x => {
+      const a = ACCENTS[DATA.prodi.indexOf(x) % ACCENTS.length];
+      return '<a href="' + esc(prodiUrl(x.id)) + '"><i style="background:' + a + '">' + esc(x.jenjang || '-') + '</i>' + esc(x.nama) + '</a>';
+    }).join('') : '<p class="muted" style="font-size:14px">Tidak ada program studi lain.</p>';
+  }
+
+  const ACC = ['var(--g1)','var(--teal)','#d99a00','var(--red)','var(--green)','var(--g2)'];
+  function textBlocks(t){
+    return String(t || '').split(/\n\s*\n/).map(b => b.trim()).filter(Boolean).map(b => {
+      const ls = b.split('\n');
+      if (ls.every(l => /^\s*[-*]\s+/.test(l))) return '<ul>' + ls.map(l => '<li>' + esc(l.replace(/^\s*[-*]\s+/, '')) + '</li>').join('') + '</ul>';
+      return '<p>' + ls.map(esc).join('<br>') + '</p>';
+    }).join('');
+  }
+  /* ---- Tata letak beranda (diatur admin) ----
+     Urutan & tampil/sembunyi bagian bawaan, plus bagian kustom (judul, teks, media, kartu). */
+  const BUILTIN = { beranda: ['#beranda', '.pg-home > .band-wrap'], prodi: ['#prodi'], voucher: ['#voucher'], statistik: ['#statistik'], alur: ['#alur'] };
+  function customSectionHtml(x, n){
+    const media = x.media || [];
+    const cards = (x.items || []).map((it, i) => {
+      const a = ACC[i % ACC.length];
+      const poin = String(it.poin || '').split('\n').map(v => v.trim()).filter(Boolean);
+      return '<article class="card jalur" style="--accent:' + a + '">' +
+        (it.label ? '<span class="lb">' + esc(it.label) + '</span>' : '') +
+        '<h3>' + esc(it.judul) + '</h3>' +
+        (it.deskripsi ? '<p>' + esc(it.deskripsi) + '</p>' : '') +
+        (poin.length ? '<ul>' + poin.map(v => '<li>' + esc(v) + '</li>').join('') + '</ul>' : '') +
+        '<div class="spacer"></div>' +
+        (it.tombolUrl ? anchor(link(it.tombolUrl), esc(it.tombolLabel || 'Selengkapnya') + ' &rarr;', ' class="btn btn-primary"') : '') +
+        '</article>';
+    }).join('');
+    return '<div class="container">' +
+      '<div class="sec-head">' + (x.label ? '<span class="eyebrow">' + esc(x.label) + '</span>' : '') +
+        '<h2>' + esc(x.judul) + '</h2>' + (x.subjudul ? '<p>' + esc(x.subjudul) + '</p>' : '') + '</div>' +
+      (x.konten ? '<div class="page-text">' + textBlocks(x.konten) + '</div>' : '') +
+      '<div class="media-stack">' + media.filter(m => m.posisi !== 'bawah').map(mediaHtml).join('') + '</div>' +
+      (cards ? '<div class="jalur-grid">' + cards + '</div>' : '') +
+      '<div class="media-stack bottom">' + media.filter(m => m.posisi === 'bawah').map(mediaHtml).join('') + '</div>' +
+      '</div>';
+  }
+  function renderLayout(){
+    const home = document.querySelector('.pg-home'); if (!home) return;
+    const layout = DATA.layout;
+    if (!Array.isArray(layout)) return; // server lama tanpa tata letak: tampilan bawaan
+    const shown = new Set(layout.map(x => x.id));
+    // sembunyikan bagian bawaan yang dimatikan admin
+    Object.keys(BUILTIN).forEach(id => BUILTIN[id].forEach(sel => { const el = home.querySelector(sel); if (el) el.hidden = !shown.has(id); }));
+    // hapus bagian kustom lama, lalu susun ulang sesuai urutan
+    home.querySelectorAll('.sec-custom').forEach(el => el.remove());
+    layout.forEach((x, n) => {
+      if (BUILTIN[x.id]) BUILTIN[x.id].forEach(sel => { const el = home.querySelector(sel); if (el) home.appendChild(el); });
+      else if (x.tipe === 'kustom') {
+        const sec = document.createElement('section');
+        sec.className = 'section sec-custom'; sec.id = x.id;
+        sec.innerHTML = customSectionHtml(x, n);
+        home.appendChild(sec);
+        sec.querySelectorAll('[data-car]').forEach(initCarousel);
+        if (layoutIo) layoutIo.observe(sec);
+      }
+    });
+    // pita prodi selalu tepat di bawah hero
+    const hero = home.querySelector('#beranda'), band = home.querySelector('.pg-home > .band-wrap');
+    if (hero && band) hero.after(band);
+  }
+
+  function renderCustom(){
+    const p = DATA.page, s = DATA.settings;
+    if (!p) { document.body.setAttribute('data-page', '404'); document.title = 'Halaman tidak ditemukan - PMB ' + s.namaKampus; return; }
+    document.title = p.judul + ' - PMB ' + s.namaKampus;
+    $('#cpCrumb').textContent = p.judul;
+    $('#cpTitle').textContent = p.judul;
+    $('#cpSub').textContent = p.subjudul || '';
+    $('#cpText').innerHTML = textBlocks(p.konten);
+    $('#cpText').style.display = p.konten ? '' : 'none';
+    $('#cpItems').innerHTML = (p.items || []).map((it, i) => {
+      const a = ACC[i % ACC.length];
+      const poin = String(it.poin || '').split('\n').map(x => x.trim()).filter(Boolean);
+      return '<article class="card jalur" style="--accent:' + a + '">' +
+        (it.label ? '<span class="lb">' + esc(it.label) + '</span>' : '') +
+        '<h3>' + esc(it.judul) + '</h3>' +
+        (it.deskripsi ? '<p>' + esc(it.deskripsi) + '</p>' : '') +
+        (poin.length ? '<ul>' + poin.map(x => '<li>' + esc(x) + '</li>').join('') + '</ul>' : '') +
+        '<div class="spacer"></div>' +
+        (it.tombolUrl ? anchor(link(it.tombolUrl), esc(it.tombolLabel || 'Selengkapnya') + ' &rarr;', ' class="btn btn-primary"') : '') +
+        '</article>';
+    }).join('');
+    const media = (p.media || []);
+    $('#cpMediaTop').innerHTML = media.filter(m => m.posisi !== 'bawah').map(mediaHtml).join('');
+    $('#cpMediaBottom').innerHTML = media.filter(m => m.posisi === 'bawah').map(mediaHtml).join('');
+    document.querySelectorAll('.pg-custom [data-car]').forEach(initCarousel);
+  }
+
+  /* ---- Media halaman kustom ---- */
+  function mediaHtml(m){
+    const cap = m.keterangan ? '<figcaption>' + esc(m.keterangan) + '</figcaption>' : '';
+    const alt = esc(m.keterangan || 'Foto');
+    const imgs = (m.gambar || []).filter(u => /^(https?:\/\/\S+|\/\S*)$/i.test(u));
+    if (m.tipe === 'youtube') {
+      if (!/^[\w-]{11}$/.test(m.youtube || '')) return '';
+      return '<figure class="media"><div class="media-frame media-yt"><iframe src="https://www.youtube-nocookie.com/embed/' + m.youtube + '?rel=0" title="' + esc(m.keterangan || 'Video YouTube') + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div>' + cap + '</figure>';
+    }
+    if (!imgs.length) return '';
+    if (m.tipe === 'foto' || imgs.length === 1) return '<figure class="media"><div class="media-frame media-photo"><img src="' + esc(imgs[0]) + '" alt="' + alt + '" loading="lazy"></div>' + cap + '</figure>';
+    return '<figure class="media"><div class="media-frame" data-car role="region" aria-roledescription="carousel" aria-label="' + alt + '">' +
+      '<div class="car-track" tabindex="0">' + imgs.map((u, i) => '<img src="' + esc(u) + '" alt="' + alt + ' ' + (i + 1) + ' dari ' + imgs.length + '" loading="lazy">').join('') + '</div>' +
+      '<button class="car-btn prev" type="button" aria-label="Foto sebelumnya">&#8249;</button><button class="car-btn next" type="button" aria-label="Foto berikutnya">&#8250;</button>' +
+      '<div class="car-dots">' + imgs.map((u, i) => '<button type="button" aria-label="Foto ' + (i + 1) + '"></button>').join('') + '</div>' +
+      '</div>' + cap + '</figure>';
+  }
+  function initCarousel(el){
+    const track = el.querySelector('.car-track'), dots = [...el.querySelectorAll('.car-dots button')], n = dots.length;
+    const cur = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+    const goTo = i => track.scrollTo({ left: ((i + n) % n) * track.clientWidth });
+    const mark = () => { const c = cur(); dots.forEach((d, i) => { d.classList.toggle('on', i === c); d.setAttribute('aria-current', i === c ? 'true' : 'false'); }); };
+    el.querySelector('.prev').onclick = () => goTo(cur() - 1);
+    el.querySelector('.next').onclick = () => goTo(cur() + 1);
+    dots.forEach((d, i) => { d.onclick = () => goTo(i); });
+    track.addEventListener('scroll', () => requestAnimationFrame(mark), { passive: true });
+    track.addEventListener('keydown', e => { if (e.key === 'ArrowLeft') { e.preventDefault(); goTo(cur() - 1); } if (e.key === 'ArrowRight') { e.preventDefault(); goTo(cur() + 1); } });
+    let timer = null;
+    const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const play = () => { if (!reduce && !timer) timer = setInterval(() => goTo(cur() + 1), 5000); };
+    const stop = () => { clearInterval(timer); timer = null; };
+    ['mouseenter', 'focusin', 'touchstart'].forEach(ev => el.addEventListener(ev, stop, { passive: true }));
+    el.addEventListener('mouseleave', play);
+    mark(); play();
+  }
+
+  /* ---- Submit ---- */
+  $('#claimForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target;
+    const val = n => String((f.elements[n] && f.elements[n].value) || '').trim();
+    const data = {
+      nama: val('nama'), email: val('email'), whatsapp: val('whatsapp'), sekolah: val('sekolah'), website: val('website'),
+      prodiIds: [...f.querySelectorAll('input[name="prodiIds"]:checked')].map(x => x.value),
+      sumberInfo: (f.querySelector('input[name="sumberInfo"]:checked') || {}).value || ''
+    };
+    const fail = (msg, el) => { toast(msg, 'err'); if (el) el.focus(); };
+    if (data.nama.length < 3) return fail('Nama lengkap wajib diisi.', $('#fNama'));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) return fail('Format email tidak valid.', $('#fEmail'));
+    if (data.whatsapp.replace(/\D/g,'').length < 10) return fail('Nomor WhatsApp tidak valid.', $('#fWa'));
+    if (!data.sekolah) return fail('Asal sekolah wajib diisi.', $('#fSekolah'));
+    if (!data.prodiIds.length) return fail('Pilih minimal satu program studi peminatan.', f.querySelector('input[name="prodiIds"]'));
+    if (!data.sumberInfo) return fail('Pilih dari mana kamu mendapat informasi klaim voucher.', f.querySelector('input[name="sumberInfo"]'));
+    if (!$('#fSetuju').checked) return fail('Centang pernyataan persetujuan terlebih dulu.', $('#fSetuju'));
+
+    const btn = $('#submitBtn'), label = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Memproses...';
+    try {
+      const r = await api('submitClaim', data);
+      showResult({
+        title: 'Voucher berhasil diklaim!',
+        msg: r.emailSent
+          ? 'Kode voucher sudah dikirim ke <b>' + esc(r.email) + '</b>. Cek juga folder Spam/Promosi.'
+          : 'Voucher tersimpan, tetapi email belum terkirim. Simpan kode ini; panitia akan mengirim ulang.',
+        kode: r.kode, nominal: rupiah(r.nominal),
+        kv: [['Nama', esc(r.nama)], ['Program studi peminatan', String(r.prodi).split('; ').map(esc).join('<br>')], ['Berlaku hingga', esc(tgl(r.berlaku))]]
+      });
+      f.reset();
+      DATA.stats.pendaftar++; if (DATA.window.sisaKuota != null) DATA.window.sisaKuota = Math.max(0, DATA.window.sisaKuota - 1);
+    } catch (err) {
+      toast(err.message, 'err');
+    } finally {
+      btn.disabled = false; btn.innerHTML = label;
+    }
+  });
+
+  $('#kipForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const f = e.target;
+    const val = n => String((f.elements[n] && f.elements[n].value) || '').trim();
+    const checked = n => [...f.querySelectorAll('input[name="' + n + '"]:checked')].map(x => x.value);
+    const data = {
+      nama: val('nama'), email: val('email'), whatsapp: val('whatsapp'), sekolah: val('sekolah'),
+      tahunLulus: val('tahunLulus'), prodiIds: checked('prodiIds'), dtsen: checked('dtsen')[0] || '',
+      pip: checked('pip')[0] || '', keterangan: val('keterangan'), website: val('website'),
+      kartu: checked('kartu')
+    };
+    if (!needPip(data.dtsen)) data.pip = '';
+    const fail = (msg, el) => { toast(msg, 'err'); if (el) el.focus(); };
+    if (data.nama.length < 3) return fail('Nama lengkap wajib diisi.', $('#kNama'));
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email)) return fail('Format email tidak valid.', $('#kEmail'));
+    if (data.whatsapp.replace(/\D/g,'').length < 10) return fail('Nomor WhatsApp tidak valid.', $('#kWa'));
+    if (!data.sekolah) return fail('Asal sekolah wajib diisi.', $('#kSekolah'));
+    if (!data.tahunLulus) return fail('Pilih tahun lulus.', $('#kLulus'));
+    if (!data.prodiIds.length) return fail('Pilih minimal satu program studi peminatan.', $('#kProdiList input'));
+    if (!data.dtsen) return fail('Pilih status DTSEN (desil).', $('#kDtsenList input'));
+    if (needPip(data.dtsen) && !data.pip) return fail('Pilih status penerima PIP.', $('#kPipList input'));
+    if (!$('#kSetuju').checked) return fail('Centang pernyataan persetujuan terlebih dulu.', $('#kSetuju'));
+
+    const btn = $('#kipBtn'), label = btn.innerHTML;
+    btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Mengirim...';
+    try {
+      const r = await api('submitKip', data);
+      showResult({
+        title: 'Data peminatan terkirim!',
+        msg: 'Terima kasih, <b>' + esc(r.nama) + '</b>. Admin akan menghubungi kamu melalui WhatsApp/email untuk proses verifikasi KIP Kuliah.',
+        kv: [['Program studi peminatan', String(r.prodi).split('; ').map(esc).join('<br>')], ['Status DTSEN', esc(r.dtsen + (r.pip ? ' (' + r.pip + ')' : ''))], ['Email', esc(r.email)]]
+      });
+      f.reset(); $('#kPipBox').hidden = true;
+    } catch (err) {
+      toast(err.message, 'err');
+    } finally {
+      btn.disabled = false; btn.innerHTML = label;
+    }
+  });
+
+  $('#copyBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText($('#okKode').textContent); toast('Kode voucher disalin.', 'ok'); }
+    catch (e) { toast('Salin manual: ' + $('#okKode').textContent); }
+  });
+
+  api('getPublicData', ROUTE.page === 'p' ? ROUTE.slug : '', ROUTE.page === 'prodi' ? ROUTE.prodi : '').then(d => {
+    DATA = d; render();
+    if (ROUTE.page === 'home' && ROUTE.s) { const el = document.getElementById(ROUTE.s); if (el) setTimeout(() => el.scrollIntoView(), 60); }
+  }).catch(e => toast(e.message, 'err'));
+})();
+</script>
+</body>
+</html>

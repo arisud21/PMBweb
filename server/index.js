@@ -77,6 +77,7 @@ const API = {
   adminSaveProdi: ([t, p]) => svc.adminSaveProdi(t, p),
   adminDeleteProdi: ([t, id]) => svc.adminDeleteProdi(t, id),
   adminUpdatePendaftar: ([t, id, p]) => svc.adminUpdatePendaftar(t, id, p),
+  adminVerifyVoucher: ([t, id, v]) => svc.adminVerifyVoucher(t, id, !!v),
   adminDeletePendaftar: ([t, id]) => svc.adminDeletePendaftar(t, id),
   adminResendVoucher: ([t, id]) => svc.adminResendVoucher(t, id),
   adminChangeCredential: ([t, o, u, n]) => svc.adminChangeCredential(t, o, u, n)

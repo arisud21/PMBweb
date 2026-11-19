@@ -150,6 +150,7 @@ td ul.pl{margin:0;padding-left:16px}
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .legend b{color:var(--ink)}
+@media (min-width:1000px){.dash-row.r3{grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}}
 .dash-row.r1 > .panel:first-child{display:flex;flex-direction:column}
 .chart{width:100%;height:240px;flex:1;min-height:240px}
 .chart svg{display:block;width:100%;height:100%;overflow:visible}
@@ -484,10 +485,21 @@ td,.detail dd,.vstate b{overflow-wrap:anywhere}
               </div>
             </div>
 
-            <div class="card panel">
-              <div class="panel-h"><h3>Pendaftar terbaru</h3><button class="btn btn-ghost btn-sm" data-goto="pendaftar">Lihat semua</button></div>
-              <div class="tbl-wrap"><table><thead><tr><th>Waktu</th><th>Nama</th><th>Program studi</th><th>Voucher</th></tr></thead><tbody id="recent"></tbody></table></div>
+            <!-- Rekap voucher yang sudah diverifikasi admin -->
+            <div class="dash-row r3">
+              <div class="card panel">
+                <div class="panel-h"><h3>Rekap voucher diklaim</h3><span class="muted" style="font-size:12.5px">Diverifikasi admin</span></div>
+                <div class="donut-wrap">
+                  <div class="donut" id="verDonut"></div>
+                  <ul class="dlegend" id="verLegend"></ul>
+                </div>
+              </div>
+              <div class="card panel">
+                <div class="panel-h"><h3>Voucher diklaim per program studi</h3><span id="verTotal" class="muted" style="font-size:12.5px"></span></div>
+                <div id="verProdi"></div>
+              </div>
             </div>
+
           </div>
         </div>
       </section>
@@ -498,10 +510,11 @@ td,.detail dd,.vstate b{overflow-wrap:anywhere}
           <input class="input search" id="qSearch" type="search" placeholder="Cari nama, email, WA, sekolah, kode..." aria-label="Cari pendaftar">
           <select class="select" id="qProdi" aria-label="Filter program studi"></select>
           <select class="select" id="qStatus" aria-label="Filter status email"></select>
+          <select class="select" id="qVer" aria-label="Filter verifikasi voucher"><option value="">Semua verifikasi</option><option value="1">Sudah diklaim</option><option value="0">Belum diklaim</option></select>
           <button class="btn btn-ghost" id="exportBtn" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Ekspor Excel</button>        </div>
         <div class="card tbl-wrap">
           <table>
-            <thead><tr><th>Waktu</th><th>Calon mahasiswa</th><th>Asal sekolah</th><th>Program studi</th><th>Voucher</th><th>Status email</th><th></th></tr></thead>
+            <thead><tr><th>Waktu</th><th>Calon mahasiswa</th><th>Asal sekolah</th><th>Program studi</th><th>Voucher</th><th>Status email</th><th>Verifikasi klaim</th><th></th></tr></thead>
             <tbody id="pTable"></tbody>
           </table>
         </div>
@@ -840,6 +853,7 @@ td,.detail dd,.vstate b{overflow-wrap:anywhere}
     </div>
     <div class="modal-foot">
       <a class="btn btn-ghost" id="dWa" href="#" target="_blank" rel="noopener">Chat WhatsApp</a>
+      <button class="btn btn-ghost" type="button" id="dVerify">Verifikasi voucher diklaim</button>
       <button class="btn btn-ghost" type="button" id="dResend">Kirim ulang voucher</button>
       <button class="btn btn-primary" type="button" id="dSave">Simpan</button>
     </div>
@@ -1090,14 +1104,41 @@ const APP_URL = '<?= appUrl ?>';
     if (D.settings.logoUrl) { const img = '<img src="' + esc(D.settings.logoUrl) + '" alt="">'; $('#sideLogo').innerHTML = img; }
     D.kip = D.kip || []; D.kipStatusList = D.kipStatusList || []; D.halaman = D.halaman || []; D.menu = D.menu || [];
     renderDash(); fillFilters(); renderPendaftar(); renderKip(); renderProdi(); fillVoucher(); fillFormset(); fillMenu(); renderHalaman(); fillLayout(); fillHero(); fillUmum();
-    // jumlah data di samping menu
+    updateCounts();
+    $('#aUser').value = D.username;
+  }
+  // jumlah data di samping menu
+  function updateCounts(){
     [['pendaftar', D.pendaftar.length, 'pendaftar'], ['kip', D.kip.length, 'peminat']].forEach(([v, n, w]) => {
       const a = $('.nv[data-view="' + v + '"]'); if (!a) return;
       let c = a.querySelector('.nv-count'); if (!c) { c = document.createElement('span'); c.className = 'nv-count'; a.appendChild(c); }
       c.textContent = n > 999 ? '999+' : n; c.setAttribute('aria-label', n + ' ' + w);
     });
-    $('#aUser').value = D.username;
   }
+
+  /* ---- Auto-update pendaftar baru (tanpa refresh halaman) ---- */
+  let polling = false;
+  const sig = d => d.pendaftar.length + ':' + (d.pendaftar[0] ? d.pendaftar[0].id : '') + '|' + d.kip.length + ':' + (d.kip[0] ? d.kip[0].id : '');
+  async function pollNew(){
+    if (polling || document.hidden || !D) return;
+    polling = true;
+    try {
+      const N = await adm('adminGetData');
+      N.kip = N.kip || [];
+      const oldP = D.pendaftar.length, oldK = D.kip.length;
+      if (sig(N) !== sig(D)) {
+        // hanya data pendaftar/KIP-K yang diganti, agar isian form pengaturan yang sedang diedit tidak tertimpa
+        D.pendaftar = N.pendaftar; D.kip = N.kip; D.window = N.window; D.today = N.today;
+        renderDash(); fillFilters(); renderPendaftar(); renderKip(); updateCounts();
+        const dp = D.pendaftar.length - oldP, dk = D.kip.length - oldK;
+        if (dp > 0) toast(dp + ' pendaftar baru masuk.', 'ok');
+        else if (dk > 0) toast(dk + ' peminat KIP-K baru masuk.', 'ok');
+      }
+    } catch (e) { /* diam: coba lagi pada putaran berikutnya */ }
+    finally { polling = false; }
+  }
+  setInterval(pollNew, 10000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pollNew(); });
 
   /* ---- Dashboard ---- */
   function statusBadge(w){ return w.open ? '<span class="badge ok"><span class="dot"></span>Klaim dibuka</span>' : '<span class="badge err"><span class="dot"></span>Klaim ditutup</span>'; }
@@ -1213,6 +1254,17 @@ const APP_URL = '<?= appUrl ?>';
     $('#statusDonut').innerHTML = tok(donutSvg(parts, P.length, (P.length ? Math.round(parts[0].v / P.length * 100) : 0) + '%', 'Terkirim'));
     $('#statusLegend').innerHTML = parts.map(p => '<li><i style="background:' + p.c + '"></i><span>' + esc(p.n) + '</span><b>' + p.v + '</b><em>' + (P.length ? Math.round(p.v / P.length * 100) : 0) + '%</em></li>').join('');
 
+    /* Rekap voucher yang sudah diverifikasi diklaim */
+    const ver = P.filter(p => p.verifikasiAt), notVer = P.length - ver.length;
+    const vparts = [{ n: 'Sudah diklaim', v: ver.length, c: 'var(--green)' }, { n: 'Belum diklaim', v: notVer, c: 'var(--yellow)' }];
+    $('#verDonut').innerHTML = tok(donutSvg(vparts, P.length, (P.length ? Math.round(ver.length / P.length * 100) : 0) + '%', 'Diklaim'));
+    $('#verLegend').innerHTML = vparts.map(p => '<li><i style="background:' + p.c + '"></i><span>' + esc(p.n) + '</span><b>' + p.v + '</b><em>' + (P.length ? Math.round(p.v / P.length * 100) : 0) + '%</em></li>').join('') +
+      '<li><i style="background:var(--primary)"></i><span>Nilai voucher terklaim</span><b>' + rupiah(ver.reduce((a, p) => a + (+p.nominal || 0), 0)) + '</b><em></em></li>';
+    const vcnt = {}; ver.forEach(p => prodiList(p).forEach(n => vcnt[n] = (vcnt[n] || 0) + 1));
+    const vrows = Object.entries(vcnt).sort((a, b) => b[1] - a[1]).slice(0, 6), vmax = Math.max(1, ...vrows.map(r => r[1]));
+    $('#verTotal').textContent = ver.length + ' dari ' + P.length + ' voucher';
+    $('#verProdi').innerHTML = vrows.length ? vrows.map(r => '<div class="bar-row"><span class="nm">' + esc(r[0]) + '</span><span class="ct">' + r[1] + '</span><div class="bar"><i style="width:' + Math.max(4, r[1] / vmax * 100) + '%"></i></div></div>').join('') : '<p class="empty">Belum ada voucher yang diverifikasi pada periode ini.</p>';
+
     /* Top program studi */
     const rk = rekapProdi(P, K);
     const top = rk.filter(r => r.v || r.k).sort((a, b) => (b.v + b.k) - (a.v + a.k)).slice(0, 5);
@@ -1241,7 +1293,6 @@ const APP_URL = '<?= appUrl ?>';
       '<div><span>Sisa kuota</span><b>' + (D.window.sisaKuota == null ? 'Tanpa batas' : D.window.sisaKuota) + '</b></div>' +
       (D.window.open ? '' : '<div><span>Keterangan</span><b>' + esc(D.window.reason) + '</b></div>');
 
-    $('#recent').innerHTML = P.slice(0, 6).map(p => '<tr><td>' + waktu(p.timestamp) + '</td><td><b>' + esc(p.nama) + '</b><span class="sub">' + esc(p.sekolah) + '</span></td><td>' + prodiList(p).map(esc).join('<br>') + '</td><td><span class="code">' + esc(p.kode) + '</span></td></tr>').join('') || '<tr><td colspan="4" class="empty">Belum ada pendaftar.</td></tr>';
   }
 
   /* ---- Pendaftar ---- */
@@ -1257,13 +1308,21 @@ const APP_URL = '<?= appUrl ?>';
   function filtered(){
     const q = $('#qSearch').value.trim().toLowerCase(), pr = $('#qProdi').value, st = $('#qStatus').value;
     return D.pendaftar.filter(p =>
-      (!pr || prodiList(p).includes(pr)) && (!st || emailCat(p) === st) &&
+      (!pr || prodiList(p).includes(pr)) && (!st || emailCat(p) === st) && (!$('#qVer').value || ($('#qVer').value === '1') === !!p.verifikasiAt) &&
       (!q || [p.nama, p.email, p.whatsapp, p.sekolah, p.sumberInfo, p.kode].join(' ').toLowerCase().includes(q)));
   }
   /* Status pendaftar = status pengiriman email voucher */
   const EMAIL_CATS = ['Terkirim', 'Gagal', 'Belum terkirim'];
   function emailCat(p){ const s = p.emailStatus || ''; return s === 'Terkirim' || (D.mailMode === 'outbox' && s === 'Outbox lokal') ? 'Terkirim' : /^Gagal/.test(s) ? 'Gagal' : 'Belum terkirim'; }
   function emailBadge(s){ return s === 'Terkirim' ? '<span class="badge ok">Email terkirim</span>' : /^Gagal/.test(s) ? '<span class="badge err" title="' + esc(s) + '">Email gagal</span>' : '<span class="badge warn">' + esc(s || 'Belum') + '</span>'; }
+  function verBadge(p){ return p.verifikasiAt ? '<span class="badge ok" title="Diverifikasi ' + esc(p.verifikasiAt) + '"><span class="dot"></span>Sudah diklaim</span><span class="sub">' + esc(waktu(p.verifikasiAt)) + '</span>' : '<span class="badge warn"><span class="dot"></span>Belum diklaim</span>'; }
+  async function toggleVerify(p){
+    const to = !p.verifikasiAt;
+    if (!(await confirmBox(to ? 'Verifikasi voucher?' : 'Batalkan verifikasi?', to ? 'Tandai voucher ' + p.kode + ' atas nama ' + p.nama + ' sudah diklaim/digunakan.' : 'Voucher ' + p.kode + ' akan ditandai belum diklaim.', to ? 'Verifikasi' : 'Batalkan'))) return false;
+    const r = await adm('adminVerifyVoucher', p.id, to); patchLocal(r);
+    renderPendaftar(); renderDash(); toast(to ? 'Voucher ' + p.kode + ' terverifikasi sudah diklaim.' : 'Verifikasi dibatalkan.', 'ok');
+    return true;
+  }
   function renderPendaftar(){
     const list = filtered(), pages = Math.max(1, Math.ceil(list.length / PAGE));
     page = Math.min(page, pages - 1);
@@ -1275,21 +1334,25 @@ const APP_URL = '<?= appUrl ?>';
       '<td>' + prodiList(p).map(esc).join('<br>') + '</td>' +
       '<td><span class="code">' + esc(p.kode) + '</span><span class="sub">' + rupiah(p.nominal) + ' &middot; s.d. ' + esc(tgl(p.berlaku)) + '</span></td>' +
       '<td>' + emailBadge(p.emailStatus) + '</td>' +
+      '<td>' + verBadge(p) + '</td>' +
       '<td><div class="acts">' +
+        '<button class="btn-icon" data-verify="' + esc(p.id) + '" title="' + (p.verifikasiAt ? 'Batalkan verifikasi' : 'Verifikasi voucher sudah diklaim') + '" aria-label="' + (p.verifikasiAt ? 'Batalkan verifikasi' : 'Verifikasi voucher sudah diklaim') + '" style="color:' + (p.verifikasiAt ? 'inherit' : 'var(--green)') + '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + (p.verifikasiAt ? '<path d="M18 6 6 18M6 6l12 12"/>' : '<path d="M20 6 9 17l-5-5"/>') + '</svg></button>' +
         '<button class="btn-icon" data-detail="' + esc(p.id) + '" title="Detail" aria-label="Detail"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>' +
         '<button class="btn-icon" data-resend="' + esc(p.id) + '" title="Kirim ulang voucher" aria-label="Kirim ulang voucher"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>' +
         '<button class="btn-icon" data-del="' + esc(p.id) + '" title="Hapus" aria-label="Hapus" style="color:var(--err)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/></svg></button>' +
-      '</div></td></tr>').join('') || '<tr><td colspan="7" class="empty">Tidak ada data yang cocok.</td></tr>';
+      '</div></td></tr>').join('') || '<tr><td colspan="8" class="empty">Tidak ada data yang cocok.</td></tr>';
     $('#pInfo').textContent = list.length ? 'Menampilkan ' + (page*PAGE+1) + '-' + Math.min(list.length, page*PAGE+PAGE) + ' dari ' + list.length + ' pendaftar' : '0 pendaftar';
     $('#pPrev').disabled = page === 0; $('#pNext').disabled = page >= pages - 1;
   }
-  ['#qSearch','#qProdi','#qStatus'].forEach(id => $(id).addEventListener('input', () => { page = 0; renderPendaftar(); }));
+  ['#qSearch','#qProdi','#qStatus','#qVer'].forEach(id => $(id).addEventListener('input', () => { page = 0; renderPendaftar(); }));
   $('#pPrev').onclick = () => { page--; renderPendaftar(); };
   $('#pNext').onclick = () => { page++; renderPendaftar(); };
   const findP = id => D.pendaftar.find(p => p.id === id);
-  function patchLocal(r){ const p = findP(r.id); if (p) Object.assign(p, { status: r.status, catatan: r.catatan, emailStatus: r.emailStatus }); }
+  function patchLocal(r){ const p = findP(r.id); if (p) Object.assign(p, { status: r.status, catatan: r.catatan, emailStatus: r.emailStatus, verifikasiAt: r.verifikasiAt }); }
 
   $('#pTable').addEventListener('click', async e => {
+    const v = e.target.closest('[data-verify]');
+    if (v) { const p = findP(v.dataset.verify); if (p) busy(v, async () => { try { await toggleVerify(p); } catch (err) { toast(err.message, 'err'); } }); return; }
     const d = e.target.closest('[data-detail]'), r = e.target.closest('[data-resend]'), x = e.target.closest('[data-del]');
     if (d) openDetail(d.dataset.detail);
     if (r) { const p = findP(r.dataset.resend); if (!p) return;
@@ -1302,9 +1365,10 @@ const APP_URL = '<?= appUrl ?>';
 
   function openDetail(id){
     const p = findP(id); if (!p) return; current = p;
-    const rows = [['Nama', p.nama], ['Email', p.email], ['WhatsApp', '+' + p.whatsapp], ['Asal sekolah', p.sekolah], ['Sumber informasi', p.sumberInfo || '-'], ['Prodi peminatan', prodiList(p).join(', ')], ['Kode voucher', p.kode], ['Nominal', rupiah(p.nominal)], ['Berlaku hingga', tgl(p.berlaku)], ['Status email', p.emailStatus], ['Waktu klaim', p.timestamp]];
+    const rows = [['Nama', p.nama], ['Email', p.email], ['WhatsApp', '+' + p.whatsapp], ['Asal sekolah', p.sekolah], ['Sumber informasi', p.sumberInfo || '-'], ['Prodi peminatan', prodiList(p).join(', ')], ['Kode voucher', p.kode], ['Nominal', rupiah(p.nominal)], ['Berlaku hingga', tgl(p.berlaku)], ['Status email', p.emailStatus], ['Verifikasi klaim', p.verifikasiAt ? 'Sudah diklaim (' + p.verifikasiAt + ')' : 'Belum diklaim'], ['Waktu klaim', p.timestamp]];
     $('#detailDl').innerHTML = rows.map(r => '<dt>' + r[0] + '</dt><dd>' + esc(r[1]) + '</dd>').join('');
     $('#dCatatan').value = p.catatan || '';
+    $('#dVerify').textContent = p.verifikasiAt ? 'Batalkan verifikasi' : 'Verifikasi voucher diklaim';
     $('#dWa').href = 'https://wa.me/' + encodeURIComponent(p.whatsapp) + '?text=' + encodeURIComponent('Halo ' + p.nama + ', kami dari panitia PMB ' + D.settings.namaKampus + '.');
     openModal('#detailModal');
   }
@@ -1312,6 +1376,7 @@ const APP_URL = '<?= appUrl ?>';
     try { const r = await adm('adminUpdatePendaftar', current.id, { catatan: $('#dCatatan').value }); patchLocal(r); renderPendaftar(); renderDash(); closeModals(); toast('Perubahan disimpan.', 'ok'); }
     catch (err) { toast(err.message, 'err'); }
   });
+  $('#dVerify').onclick = () => busy($('#dVerify'), async () => { try { if (await toggleVerify(current)) closeModals(); } catch (err) { toast(err.message, 'err'); } });
   $('#dResend').onclick = () => busy($('#dResend'), async () => {
     try { const r = await adm('adminResendVoucher', current.id); patchLocal(r); renderPendaftar(); renderDash(); toast('Voucher dikirim ulang ke ' + current.email, 'ok'); }
     catch (err) { toast(err.message, 'err'); }

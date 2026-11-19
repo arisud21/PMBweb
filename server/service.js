@@ -225,7 +225,7 @@ const mapPendaftar = r => ({
   id: r.id, timestamp: r.timestamp, nama: r.nama, email: r.email, whatsapp: r.whatsapp,
   sekolah: r.sekolah, sumberInfo: r.sumber_info, prodiId: r.prodi_id, prodi: r.prodi,
   prodiList: r.prodi ? r.prodi.split('; ') : [], kode: r.kode,
-  nominal: String(r.nominal), berlaku: r.berlaku, emailStatus: r.email_status, status: r.status, catatan: r.catatan
+  nominal: String(r.nominal), berlaku: r.berlaku, emailStatus: r.email_status, status: r.status, catatan: r.catatan, verifikasiAt: r.verifikasi_at || ''
 });
 const mapKip = r => ({
   id: r.id, timestamp: r.timestamp, nama: r.nama, nisn: r.nisn, email: r.email, whatsapp: r.whatsapp,
@@ -631,6 +631,19 @@ function adminUpdatePendaftar(token, id, patch) {
   return cur;
 }
 
+/** Verifikasi admin bahwa voucher pendaftar benar-benar sudah diklaim/dipakai. */
+function adminVerifyVoucher(token, id, verified) {
+  requireAdmin(token);
+  const cur = findPendaftar(id);
+  if (!cur) throw new UserError('Data pendaftar tidak ditemukan.', 404);
+  if (verified) {
+    D.run("UPDATE pendaftar SET verifikasi_at = ?, status = 'Voucher Digunakan' WHERE id = ?", U.fmtDateTime(new Date()), cur.id);
+  } else {
+    D.run("UPDATE pendaftar SET verifikasi_at = '', status = CASE WHEN status = 'Voucher Digunakan' THEN 'Mendaftar' ELSE status END WHERE id = ?", cur.id);
+  }
+  return findPendaftar(id);
+}
+
 /** Simpan menu navigasi + tombol kanan atas + judul hero. */
 function adminSaveMenu(token, o) {
   requireAdmin(token);
@@ -956,7 +969,7 @@ module.exports = {
   init, setAdminCredential, adminUploadImage,
   getPublicData, submitClaim, submitKip,
   adminLogin, adminLogout, adminGetData, adminSaveSettings, adminSaveProdi, adminDeleteProdi,
-  adminUpdatePendaftar, adminDeletePendaftar, adminResendVoucher, adminChangeCredential,
+  adminUpdatePendaftar, adminVerifyVoucher, adminDeletePendaftar, adminResendVoucher, adminChangeCredential,
   adminUpdateKip, adminDeleteKip, adminSaveMenu, adminSaveLayout, adminSaveHero, adminSaveHalaman, adminDeleteHalaman,
   adminEmailInfo, adminTestEmail, adminResendPending, adminSaveSmtp
 };

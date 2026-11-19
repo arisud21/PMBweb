@@ -108,6 +108,7 @@ const pendaftarCols = db.prepare('PRAGMA table_info(pendaftar)').all().map(c => 
 const prodiCols = db.prepare('PRAGMA table_info(prodi)').all().map(c => c.name);
 if (!prodiCols.includes('profil')) db.exec("ALTER TABLE prodi ADD COLUMN profil TEXT NOT NULL DEFAULT '{}'");
 if (!pendaftarCols.includes('sumber_info')) db.exec("ALTER TABLE pendaftar ADD COLUMN sumber_info TEXT NOT NULL DEFAULT ''");
+if (!pendaftarCols.includes('verifikasi_at')) db.exec("ALTER TABLE pendaftar ADD COLUMN verifikasi_at TEXT NOT NULL DEFAULT ''");
 const kipCols = db.prepare('PRAGMA table_info(kip)').all().map(c => c.name);
 if (!kipCols.includes('dtsen')) db.exec("ALTER TABLE kip ADD COLUMN dtsen TEXT NOT NULL DEFAULT ''");
 if (!kipCols.includes('pip')) db.exec("ALTER TABLE kip ADD COLUMN pip TEXT NOT NULL DEFAULT ''");
